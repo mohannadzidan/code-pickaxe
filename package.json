@@ -1,0 +1,24 @@
+{
+  "name": "react-trpc-turbo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "start:backend": "node apps/api/dist/server.js"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
+    "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@8.9.0"
+}
