@@ -222,6 +222,7 @@ export class ParsingEngine {
       children: [],
       canExplode: true,
       members: [],
+      sourceText: sf.getFullText(),
     };
   }
 

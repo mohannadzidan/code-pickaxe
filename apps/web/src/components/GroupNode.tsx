@@ -37,15 +37,8 @@ export default function GroupNode({ data, selected }: NodeProps) {
       <NodeResizer
         minWidth={220}
         minHeight={100}
-        lineStyle={{ border: `1px solid ${color}44` }}
-        handleStyle={{
-          width: 10,
-          height: 10,
-          borderRadius: 2,
-          background: color,
-          border: "none",
-          opacity: selected ? 1 : 0.4,
-        }}
+        lineStyle={{ border: `1.5px solid ${color}66`, cursor: "nwse-resize" }}
+        handleStyle={{ display: "none" }}
       />
 
       <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: "none" }} />

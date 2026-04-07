@@ -4,10 +4,9 @@ import { useGraphCallbacks } from "./graphContext";
 export type FileNodeData = {
   label: string;
   kind: string;
-  sourceText?: string;
   filePath?: string;
-  isExpanded?: boolean;
   isExternal?: boolean;
+  isSelected?: boolean;
 };
 
 const KIND_COLOR: Record<string, string> = {
@@ -38,24 +37,28 @@ const KIND_BADGE: Record<string, string> = {
 
 export default function FileNode({ id, data }: NodeProps) {
   const d = data as unknown as FileNodeData;
-  const { onToggleCode } = useGraphCallbacks();
+  const { onSelectNode } = useGraphCallbacks();
 
   const color = KIND_COLOR[d.kind] ?? "#64748b";
   const badge = KIND_BADGE[d.kind] ?? d.kind;
-  const hasCode = Boolean(d.sourceText?.trim());
-  const isOpen = Boolean(d.isExpanded);
+  const isSelected = Boolean(d.isSelected);
 
   return (
     <div
+      onClick={(e) => { e.stopPropagation(); onSelectNode(id); }}
       style={{
-        background: "#ffffff",
+        background: d.isExternal ? `${color}0d` : "#ffffff",
         borderRadius: 8,
-        border: `1.5px solid ${isOpen ? color + "88" : "#e2e8f0"}`,
+        border: `1.5px ${d.isExternal ? "dashed" : "solid"} ${isSelected ? color : d.isExternal ? color + "55" : "#e2e8f0"}`,
         fontFamily: "Inter, system-ui, sans-serif",
         width: "100%",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.07)",
+        boxShadow: isSelected
+          ? `0 0 0 2px ${color}44, 0 2px 10px rgba(0,0,0,0.07)`
+          : d.isExternal ? "none" : "0 2px 10px rgba(0,0,0,0.07)",
+        opacity: d.isExternal ? 0.85 : 1,
         overflow: "hidden",
-        transition: "border-color 0.15s",
+        cursor: "pointer",
+        transition: "border-color 0.12s, box-shadow 0.12s",
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: "none" }} />
@@ -67,9 +70,8 @@ export default function FileNode({ id, data }: NodeProps) {
           alignItems: "center",
           gap: 7,
           padding: "7px 10px 6px",
-          background: isOpen ? "#f1f5f9" : "#f8fafc",
-          borderBottom: isOpen ? `1px solid ${color}33` : undefined,
-          transition: "background 0.15s",
+          background: isSelected ? `${color}10` : "#f8fafc",
+          transition: "background 0.12s",
         }}
       >
         <span
@@ -92,60 +94,7 @@ export default function FileNode({ id, data }: NodeProps) {
         >
           {d.filePath ?? d.label}
         </span>
-        {hasCode && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              onToggleCode(id);
-            }}
-            style={{
-              background: isOpen ? color + "22" : "none",
-              border: isOpen ? `1px solid ${color}44` : "1px solid transparent",
-              cursor: "pointer",
-              color: isOpen ? color : "#94a3b8",
-              fontSize: 11,
-              lineHeight: 1,
-              padding: "2px 5px",
-              borderRadius: 4,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              transition: "all 0.15s",
-            }}
-            title={isOpen ? "Collapse code" : "Show code"}
-          >
-            {isOpen ? "▴" : "▾"}
-          </button>
-        )}
       </div>
-
-      {/* Code block */}
-      {hasCode && isOpen && (
-        <div
-          style={{
-            background: "#1e1e2e",
-            overflow: "auto",
-          }}
-        >
-          <pre
-            style={{
-              margin: 0,
-              padding: "10px 14px",
-              fontSize: 10,
-              lineHeight: 1.65,
-              color: "#cdd6f4",
-              fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-              whiteSpace: "pre",
-              minWidth: "max-content",
-            }}
-          >
-            {d.sourceText!.length > 2000
-              ? d.sourceText!.slice(0, 2000) + "\n… (truncated)"
-              : d.sourceText}
-          </pre>
-        </div>
-      )}
 
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
     </div>

@@ -1,11 +1,14 @@
 import { createContext, useContext } from "react";
+import type { CodeDefinition } from "@api/parsing/types";
 
 export interface GraphCallbacks {
-  onToggleCode: (nodeId: string) => void;
+  onSelectNode: (entityId: string | null) => void;
+  onNavigateTo: (loc: CodeDefinition) => void;
 }
 
 export const GraphCallbacksContext = createContext<GraphCallbacks>({
-  onToggleCode: () => {},
+  onSelectNode: () => {},
+  onNavigateTo: () => {},
 });
 
 export function useGraphCallbacks() {
