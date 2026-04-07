@@ -62,7 +62,6 @@ export default function FileNode({ id, data }: NodeProps) {
       }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: "none" }} />
-
       {/* Header */}
       <div
         style={{

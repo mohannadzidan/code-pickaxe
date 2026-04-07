@@ -2,13 +2,13 @@ import {
   BaseEdge,
   EdgeLabelRenderer,
   Position,
-  getStraightPath,
+  getSimpleBezierPath,
   useInternalNode,
   type EdgeProps,
   type InternalNode,
-} from "@xyflow/react";
-import type { CodeDefinition } from "@api/parsing/types";
-import { useGraphCallbacks } from "./graphContext";
+} from '@xyflow/react';
+import type { CodeDefinition } from '@api/parsing/types';
+import { useGraphCallbacks } from './graphContext';
 
 function getNodeCenter(node: InternalNode) {
   const { positionAbsolute } = node.internals;
@@ -48,15 +48,7 @@ function getEdgePosition(node: InternalNode, intersect: { x: number; y: number }
   return Position.Top;
 }
 
-export default function FloatingEdge({
-  id,
-  source,
-  target,
-  label,
-  data,
-  markerEnd,
-  style,
-}: EdgeProps) {
+export default function FloatingEdge({ id, source, target, label, data, markerEnd, style }: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   const { onNavigateTo } = useGraphCallbacks();
@@ -69,13 +61,13 @@ export default function FloatingEdge({
   const sourcePos = getEdgePosition(sourceNode, sourceIntersect);
   const targetPos = getEdgePosition(targetNode, targetIntersect);
 
-  const [edgePath, labelX, labelY] = getStraightPath({
+  const [edgePath, labelX, labelY] = getSimpleBezierPath({
     sourceX: sourceIntersect.x,
     sourceY: sourceIntersect.y,
-    // sourcePosition: sourcePos,
+    sourcePosition: sourcePos,
     targetX: targetIntersect.x,
     targetY: targetIntersect.y,
-    // targetPosition: targetPos,
+    targetPosition: targetPos,
   });
 
   return (
@@ -84,20 +76,27 @@ export default function FloatingEdge({
       {label && (
         <EdgeLabelRenderer>
           <div
-            onClick={firstUsageLoc ? (e) => { e.stopPropagation(); onNavigateTo(firstUsageLoc); } : undefined}
+            onClick={
+              firstUsageLoc
+                ? (e) => {
+                    e.stopPropagation();
+                    onNavigateTo(firstUsageLoc);
+                  }
+                : undefined
+            }
             style={{
-              position: "absolute",
+              position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               fontSize: 9,
-              color: "#94a3b8",
-              background: "#0f172a",
-              padding: "1px 6px",
+              color: '#94a3b8',
+              background: '#0f172a',
+              padding: '1px 6px',
               borderRadius: 3,
-              border: `1px solid ${firstUsageLoc ? "#334155" : "#1e293b"}`,
-              pointerEvents: firstUsageLoc ? "all" : "none",
-              whiteSpace: "nowrap",
-              cursor: firstUsageLoc ? "pointer" : "default",
-              userSelect: "none",
+              border: `1px solid ${firstUsageLoc ? '#334155' : '#1e293b'}`,
+              pointerEvents: firstUsageLoc ? 'all' : 'none',
+              whiteSpace: 'nowrap',
+              cursor: firstUsageLoc ? 'pointer' : 'default',
+              userSelect: 'none',
             }}
             className="nodrag nopan"
             title={firstUsageLoc ? `Go to usage (line ${firstUsageLoc.line})` : undefined}

@@ -81,6 +81,7 @@ export class ParsingEngine {
 
     if (!hasTsConfig) {
       project.addSourceFilesAtPaths(`${absRootDir}/**/*.ts`);
+      project.addSourceFilesAtPaths(`${absRootDir}/**/*.tsx`);
     }
 
     const entities = new Map<EntityId, CodeEntity>();
@@ -197,11 +198,72 @@ export class ParsingEngine {
       }
     }
 
-    return {
+    return this.filterIsolatedGraph({
       entities,
       dependencies: allDependencies,
       modules: moduleIds,
       externalModules: Array.from(externalModulesMap.values()),
+    });
+  }
+
+  private filterIsolatedGraph(graph: CodeGraph): CodeGraph {
+    const { entities, dependencies, modules, externalModules } = graph;
+
+    const degree = new Map<EntityId, number>();
+    for (const id of entities.keys()) degree.set(id, 0);
+
+    for (const dep of dependencies) {
+      if (entities.has(dep.source)) {
+        degree.set(dep.source, (degree.get(dep.source) ?? 0) + 1);
+      }
+      if (entities.has(dep.target)) {
+        degree.set(dep.target, (degree.get(dep.target) ?? 0) + 1);
+      }
+    }
+
+    const keep = new Set<EntityId>();
+    for (const [id, d] of degree.entries()) {
+      if (d > 0) keep.add(id);
+    }
+
+    // Keep ancestor chain so surviving children remain reachable from their module/class parents.
+    for (const id of Array.from(keep)) {
+      let cur: EntityId | null = id;
+      while (cur) {
+        const e = entities.get(cur);
+        if (!e?.parent) break;
+        keep.add(e.parent);
+        cur = e.parent;
+      }
+    }
+
+    const filteredEntities = new Map<EntityId, CodeEntity>();
+    for (const [id, entity] of entities.entries()) {
+      if (!keep.has(id)) continue;
+      filteredEntities.set(id, {
+        ...entity,
+        children: entity.children.filter((childId) => keep.has(childId)),
+      });
+    }
+
+    const filteredModules = modules.filter((id) => keep.has(id));
+    const filteredDependencies = dependencies.filter((dep) => {
+      if (!keep.has(dep.source)) return false;
+      if (dep.target.startsWith('external:')) return true;
+      return keep.has(dep.target);
+    });
+
+    const referencedExternal = new Set<string>();
+    for (const dep of filteredDependencies) {
+      if (dep.target.startsWith('external:')) referencedExternal.add(dep.target.slice('external:'.length));
+    }
+    const filteredExternalModules = externalModules.filter((ext) => referencedExternal.has(ext.moduleSpecifier));
+
+    return {
+      entities: filteredEntities,
+      dependencies: filteredDependencies,
+      modules: filteredModules,
+      externalModules: filteredExternalModules,
     };
   }
 

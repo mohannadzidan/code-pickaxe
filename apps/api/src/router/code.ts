@@ -2,7 +2,7 @@ import { publicProcedure, router } from '@api/trpc';
 import { ParsingEngine } from '@api/parsing/engine';
 import path from 'path';
 
-const directory = path.join(process.cwd(), 'src');
+const directory = path.join(process.cwd(), '../web/src');
 
 const engine = new ParsingEngine();
 

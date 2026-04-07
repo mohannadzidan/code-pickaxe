@@ -10,6 +10,7 @@ type Props = {
   isExploded: boolean;
   onExplode: (id: string) => void;
   onCollapse: (id: string) => void;
+  onHide: (id: string) => void;
   onClose: () => void;
 };
 
@@ -33,7 +34,7 @@ export default function ContextMenu({
   nodeId,
   top, left, right, bottom,
   canExplode, isExploded,
-  onExplode, onCollapse, onClose,
+  onExplode, onCollapse, onHide, onClose,
 }: Props) {
   return (
     <div
@@ -68,11 +69,12 @@ export default function ContextMenu({
           <span>⊟</span> Collapse
         </button>
       )}
-      {!canExplode && !isExploded && (
-        <div style={{ ...item, color: "#64748b", cursor: "default" }}>
-          No actions
-        </div>
-      )}
+      <button
+        style={item}
+        onMouseDown={() => { onHide(nodeId); onClose(); }}
+      >
+        <span>🙈</span> Hide
+      </button>
     </div>
   );
 }
