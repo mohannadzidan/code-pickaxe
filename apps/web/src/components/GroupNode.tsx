@@ -15,7 +15,7 @@ const KIND_ICON: Record<string, string> = {
   class:  "◈",
 };
 
-export default function GroupNode({ data, selected }: NodeProps) {
+export default function GroupNode({ data }: NodeProps) {
   const d = data as unknown as GroupNodeData;
   const color = KIND_COLOR[d.kind] ?? "#64748b";
   const icon = KIND_ICON[d.kind] ?? "⬜";

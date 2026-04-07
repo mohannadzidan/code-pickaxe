@@ -1,12 +1,13 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { useGraphCallbacks } from "./graphContext";
 
 export type FileNodeData = {
+  id: string;
   label: string;
   kind: string;
   filePath?: string;
   isExternal?: boolean;
   isSelected?: boolean;
+  onSelectNode: (entityId: string) => void;
 };
 
 const KIND_COLOR: Record<string, string> = {
@@ -37,7 +38,6 @@ const KIND_BADGE: Record<string, string> = {
 
 export default function FileNode({ id, data }: NodeProps) {
   const d = data as unknown as FileNodeData;
-  const { onSelectNode } = useGraphCallbacks();
 
   const color = KIND_COLOR[d.kind] ?? "#64748b";
   const badge = KIND_BADGE[d.kind] ?? d.kind;
@@ -45,7 +45,10 @@ export default function FileNode({ id, data }: NodeProps) {
 
   return (
     <div
-      onClick={(e) => { e.stopPropagation(); onSelectNode(id); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        d.onSelectNode(id);
+      }}
       style={{
         background: d.isExternal ? `${color}0d` : "#ffffff",
         borderRadius: 8,

@@ -1,99 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import Editor, { useMonaco } from "@monaco-editor/react";
-import type * as MonacoNS from "monaco-editor";
-import type { CodeDefinition, SerializedCodeGraph } from "@api/parsing/types";
+import { useCodePaneStore, selectActiveFilePath, selectNavigateTarget, selectSourceCode } from "@/features/codePane/store/codePaneStore";
+import { services } from "@/app/bootstrap";
 
-// ── Injected CSS for highlight decoration ─────────────────────────────────────
-const HIGHLIGHT_CLASS = "cp-range-highlight";
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = `.${HIGHLIGHT_CLASS} { background-color: rgba(255, 210, 60, 0.18) !important; border-radius: 2px; }`;
-  document.head.appendChild(style);
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function findModuleId(entityId: string, graph: SerializedCodeGraph): string {
-  let cur = entityId;
-  while (true) {
-    const e = graph.entities[cur];
-    if (!e) return cur;
-    if (e.kind === "module") return cur;
-    if (!e.parent) return cur;
-    cur = e.parent;
-  }
-}
-
-export type NavigationTarget = CodeDefinition;
-
-type Props = {
-  selectedEntityId: string | null;
-  navigateTarget: NavigationTarget | null;
-  graph: SerializedCodeGraph;
-};
-
-export default function CodePane({ selectedEntityId, navigateTarget, graph }: Props) {
+export default function CodePane() {
   const monaco = useMonaco();
-  const editorRef = useRef<MonacoNS.editor.IStandaloneCodeEditor | null>(null);
-  const decorationsRef = useRef<MonacoNS.editor.IEditorDecorationsCollection | null>(null);
-  const [content, setContent] = useState<{ code: string; path: string } | null>(null);
+  const activeFilePath = useCodePaneStore(selectActiveFilePath);
+  const sourceCode = useCodePaneStore(selectSourceCode);
+  const navigateTarget = useCodePaneStore(selectNavigateTarget);
 
-  // ── Resolve file content when selection changes ─────────────────────────────
   useEffect(() => {
-    if (!selectedEntityId) { setContent(null); return; }
-    const moduleId = findModuleId(selectedEntityId, graph);
-    const module = graph.entities[moduleId];
-    if (!module?.sourceText) { setContent(null); return; }
-    setContent({ code: module.sourceText, path: moduleId });
-  }, [selectedEntityId, graph]);
+    if (!monaco || !navigateTarget) return;
+    services.monacoService.highlightAndReveal(monaco, navigateTarget);
+  }, [navigateTarget, monaco]);
 
-  // ── When navigateTarget changes, switch to its file if different ─────────────
-  useEffect(() => {
-    if (!navigateTarget) return;
-    // navigateTarget.file is an absolute path; find the module whose definition matches
-    const moduleId = Object.keys(graph.entities).find(id => {
-      const e = graph.entities[id];
-      return e?.kind === "module" && e.definition?.file === navigateTarget.file;
-    });
-    if (!moduleId) return;
-    const module = graph.entities[moduleId];
-    if (!module?.sourceText) return;
-    setContent({ code: module.sourceText, path: moduleId });
-  }, [navigateTarget, graph]);
-
-  // ── Scroll + highlight when entity or navigate target changes ───────────────
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || !monaco) return;
-
-    // Clear previous decorations
-    decorationsRef.current?.clear();
-
-    const target = navigateTarget ?? (
-      selectedEntityId && selectedEntityId !== findModuleId(selectedEntityId, graph)
-        ? graph.entities[selectedEntityId]?.definition
-        : null
-    );
-
-    if (!target) return;
-
-    const model = editor.getModel();
-    if (!model) return;
-
-    const range = new monaco.Range(target.line, target.column, target.endLine, target.endColumn + 1);
-
-    // Apply background highlight decoration
-    decorationsRef.current = editor.createDecorationsCollection([{
-      range,
-      options: { inlineClassName: HIGHLIGHT_CLASS },
-    }]);
-
-    // Reveal in center with some context
-    editor.revealRangeInCenter(range, monaco.editor.ScrollType.Smooth);
-  }, [selectedEntityId, navigateTarget, graph, monaco]);
-
-  // ── Empty state ──────────────────────────────────────────────────────────────
-  if (!content) {
+  if (!sourceCode || !activeFilePath) {
     return (
       <div style={{
         width: "100%", height: "100%",
@@ -126,13 +47,13 @@ export default function CodePane({ selectedEntityId, navigateTarget, graph }: Pr
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
       }}>
-        {content.path}
+        {activeFilePath}
       </div>
 
       <div style={{ flex: 1, overflow: "hidden" }}>
         <Editor
           language="typescript"
-          value={content.code}
+          value={sourceCode}
           theme="vs-dark"
           options={{
             readOnly: true,
@@ -149,7 +70,7 @@ export default function CodePane({ selectedEntityId, navigateTarget, graph }: Pr
             contextmenu: false,
           }}
           onMount={(editor) => {
-            editorRef.current = editor;
+            services.monacoService.setEditor(editor as unknown as Parameters<typeof services.monacoService.setEditor>[0]);
           }}
         />
       </div>

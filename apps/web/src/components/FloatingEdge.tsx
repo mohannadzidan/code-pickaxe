@@ -8,7 +8,6 @@ import {
   type InternalNode,
 } from '@xyflow/react';
 import type { CodeDefinition } from '@api/parsing/types';
-import { useGraphCallbacks } from './graphContext';
 
 function getNodeCenter(node: InternalNode) {
   const { positionAbsolute } = node.internals;
@@ -51,8 +50,9 @@ function getEdgePosition(node: InternalNode, intersect: { x: number; y: number }
 export default function FloatingEdge({ id, source, target, label, data, markerEnd, style }: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
-  const { onNavigateTo } = useGraphCallbacks();
-  const firstUsageLoc = (data as { firstUsageLoc?: CodeDefinition } | undefined)?.firstUsageLoc;
+  const edgeData = data as { firstUsageLoc?: CodeDefinition; onNavigateTo?: (location: CodeDefinition) => void } | undefined;
+  const firstUsageLoc = edgeData?.firstUsageLoc;
+  const onNavigateTo = edgeData?.onNavigateTo;
 
   if (!sourceNode || !targetNode) return null;
 
@@ -77,7 +77,7 @@ export default function FloatingEdge({ id, source, target, label, data, markerEn
         <EdgeLabelRenderer>
           <div
             onClick={
-              firstUsageLoc
+              firstUsageLoc && onNavigateTo
                 ? (e) => {
                     e.stopPropagation();
                     onNavigateTo(firstUsageLoc);

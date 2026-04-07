@@ -115,7 +115,7 @@ export class ParsingEngine {
 
       // Resolve specifiers and update resolvedModuleId
       for (const [, sym] of importMap) {
-        const resolved = this.resolveSpecifier(sym.moduleSpecifier, sf, absRootDir, filePathToModuleId);
+        const resolved = this.resolveSpecifier(sym.moduleSpecifier, sf, filePathToModuleId);
         if (resolved) {
           sym.resolvedModuleId = resolved;
         } else {
@@ -591,7 +591,6 @@ export class ParsingEngine {
   private resolveSpecifier(
     specifier: string,
     sf: SourceFile,
-    rootDir: string,
     filePathToModuleId: Map<string, EntityId>
   ): EntityId | null {
     if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null;
