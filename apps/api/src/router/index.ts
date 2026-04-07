@@ -1,10 +1,10 @@
 import { router } from '@api/trpc';
 import { helloRouter } from '@api/router/hello';
-import { graphRouter } from './graph';
+import { codeRouter } from './code';
 
 export const appRouter = router({
   hello: helloRouter,
-  graph: graphRouter,
+  graph: codeRouter,
 });
 
 export type AppRouter = typeof appRouter;
