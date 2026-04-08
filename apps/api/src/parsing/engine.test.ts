@@ -46,7 +46,7 @@ function normalizeGraph(graph: SerializedCodeGraph, fixtureRoot: string): Serial
   const normalizedEntities = Object.fromEntries(
     Object.entries(graph.entities)
       .map(([id, entity]) => [id, normalizeEntity(entity, fixtureRoot)])
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => (a as string).localeCompare(b as string))
   );
 
   const normalizedDependencies = [...graph.dependencies]
@@ -125,7 +125,7 @@ describe('ParsingEngine', () => {
       }
 
       if ('members' in entity) {
-        for (const memberId of entity.members) {
+        for (const memberId of (entity as { members: string[] }).members) {
           const member = graph.entities.get(memberId);
           expect(member, `${name}: missing member ${memberId}`).toBeDefined();
           expect(member?.parent, `${name}: wrong parent on member ${memberId}`).toBe(entity.id);
@@ -143,9 +143,7 @@ describe('ParsingEngine', () => {
       expect(graph.entities.has(dep.source), `${name}: dangling dependency source ${dep.source}`).toBe(true);
 
       if (dep.importedSymbol.isDefault && !dep.importedSymbol.isNamespace) {
-        expect(dep.importedSymbol.symbolName, `${name}: default import should use canonical symbolName`).toBe(
-          'default'
-        );
+        expect(dep.importedSymbol.symbolName, `${name}: default import should use canonical symbolName`).toBe('default');
       }
 
       if (dep.target.startsWith('external:')) {

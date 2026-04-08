@@ -282,10 +282,14 @@ export class ParsingEngine {
     const filteredEntities = new Map<EntityId, CodeEntity>();
     for (const [id, entity] of entities.entries()) {
       if (!keep.has(id)) continue;
-      filteredEntities.set(id, {
+      const filteredEntity: CodeEntity = {
         ...entity,
         children: entity.children.filter((childId) => keep.has(childId)),
-      });
+        ...('members' in entity
+          ? { members: (entity as { members: string[] }).members.filter((memberId) => keep.has(memberId)) }
+          : {}),
+      };
+      filteredEntities.set(id, filteredEntity);
     }
 
     const filteredModules = modules.filter((id) => keep.has(id));
@@ -657,7 +661,8 @@ export class ParsingEngine {
       if (defaultImport) {
         const localName = defaultImport.getText();
         addImport(localName, {
-          symbolName: localName,
+          symbolName: 'default',
+          alias: localName,
           moduleSpecifier,
           resolvedModuleId: null,
           isTypeOnly,
