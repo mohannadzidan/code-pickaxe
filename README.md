@@ -1,59 +1,90 @@
-# react-trpc-turbo
+# Code Pickaxe
 
-## Technologies used
+Code Pickaxe is a code analysis tool that turns your codebase into an interactive visual graph.
 
-- Turborepo
-- React Vite
-- Express.js
-- tRPC
-- TanStack Router
-- Tailwind CSS
+Instead of reading files one by one, you can explore modules, classes, functions, and their dependencies as connected nodes—making architecture easier to understand for humans.
 
-### Apps and Packages
+## Why use it?
 
-- `@repo/web`: Vite, React, TanStack Router and tRPC Client
-- `@repo/api`: Express.js, Drizzle and tRPC Server
-- `@repo/eslint-config`: `eslint` configurations
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-- `@repo/tailwind-config`: shared Tailwind configuration
+- Understand unfamiliar codebases faster.
+- See how modules and symbols depend on each other.
+- Spot central files and hidden coupling.
+- Navigate from graph relationships directly to source code.
+- Make onboarding, refactoring, and architecture reviews more engaging.
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## What you can do
 
-### Utilities
+- Parse a TypeScript/TSX codebase into a dependency graph.
+- Explore entities (modules, classes, functions, methods, properties, etc.).
+- Expand/collapse parts of the graph to control complexity.
+- Hide noisy branches to focus on what matters.
+- Use force-based layout + reheat to improve readability.
+- Open source code in the integrated code pane and jump to usage locations.
 
-This Turborepo has some additional tools already setup for you:
+## Quick start
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+### 1) Install dependencies
 
-## Setup
-
-To get started, clone the repository and install the dependencies:
-
-```
+```bash
 pnpm install
 ```
 
-Then, copy the `.env.example` file to `.env` in the web/ folder and fill in the necessary environment variables. For local development, the defaul value will work. If you want to deploy the app, you will need to specify where the backend is hosted.
+### 2) Create web env file
 
-```
+Use your shell of choice to copy:
+
+```bash
 cp ./apps/web/.env.example ./apps/web/.env
 ```
 
-### Build
+PowerShell alternative:
 
-To build all apps and packages, run the following command:
-
-```
-pnpm build
+```powershell
+Copy-Item .\apps\web\.env.example .\apps\web\.env
 ```
 
-### Develop
+### 3) Run in development
 
-To run all apps and packages in development mode, run the following command:
-
-```
+```bash
 pnpm dev
 ```
-# code-pickaxe
+
+This starts the monorepo apps (web + API) through Turbo.
+
+## Typical workflow
+
+1. Start the app and wait for parsing to finish.
+2. Click nodes to inspect related source in the code pane.
+3. Right-click nodes to explode, collapse, or hide parts of the graph.
+4. Switch vertical/horizontal layout depending on the shape of your code.
+5. Hit **Reheat** when you want the force simulation to relax the graph again.
+6. Click edge labels to jump to concrete usage locations.
+
+## Monorepo structure
+
+- `apps/web` — React + Vite frontend (graph UI + code pane)
+- `apps/api` — Express + tRPC backend (parser + graph API)
+- `packages/typescript-config` — shared TS config
+
+## Scripts
+
+From repository root:
+
+- `pnpm dev` — run development mode
+- `pnpm build` — build all workspace targets
+- `pnpm start:backend` — start built backend server
+- `pnpm lint` — run linter
+
+## Requirements
+
+- Node.js `>= 18`
+- `pnpm` (workspace uses `pnpm@8.x`)
+
+## Notes
+
+- The parser currently targets a local source folder configured in the API router.
+- If you want to analyze a different project path, adjust the parsing target in the API app.
+
+---
+
+If your codebase feels too big to hold in your head, Code Pickaxe gives you a map.
