@@ -58,7 +58,7 @@ export class GraphProjectionService {
 
     const nodeIds = new Set(nodes.map((n) => n.id));
 
-    const visibleSrc = (id: EntityId): EntityId => {
+    const visibleNode = (id: EntityId): EntityId => {
       let cur: EntityId = id;
       while (true) {
         if (nodeIds.has(cur)) return cur;
@@ -66,6 +66,37 @@ export class GraphProjectionService {
         if (!e?.parent) return cur;
         cur = e.parent as EntityId;
       }
+    };
+
+    const resolveImportedMemberTarget = (moduleId: EntityId, symbolName: string): EntityId | null => {
+      const moduleEntity = data.entities[moduleId];
+      if (!moduleEntity || moduleEntity.kind !== "module") return null;
+
+      for (const childId of moduleEntity.children) {
+        const child = data.entities[childId];
+        if (!child) continue;
+        if (!child.exported) continue;
+        if (child.name !== symbolName) continue;
+        if (!nodeIds.has(child.id)) continue;
+        return child.id;
+      }
+
+      return null;
+    };
+
+    const visibleTarget = (dep: (typeof data.dependencies)[number]): EntityId => {
+      const targetEntity = data.entities[dep.target];
+      if (
+        targetEntity?.kind === "module" &&
+        !dep.importedSymbol.isDefault &&
+        !dep.importedSymbol.isNamespace &&
+        dep.importedSymbol.symbolName !== "*"
+      ) {
+        const mappedMember = resolveImportedMemberTarget(targetEntity.id, dep.importedSymbol.symbolName);
+        if (mappedMember) return mappedMember;
+      }
+
+      return visibleNode(dep.target);
     };
 
     const contexts: Record<string, string> = {
@@ -79,8 +110,8 @@ export class GraphProjectionService {
 
     const edgeMap = new Map<string, { edge: DomainEdge; contexts: Set<string> }>();
     for (const dep of data.dependencies) {
-      const srcId = visibleSrc(dep.source);
-      const tgtId = dep.target;
+      const srcId = visibleNode(dep.source);
+      const tgtId = visibleTarget(dep);
       if (!nodeIds.has(srcId) || !nodeIds.has(tgtId) || srcId === tgtId) continue;
 
       const key = `${srcId}→${tgtId}`;
