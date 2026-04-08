@@ -156,6 +156,7 @@ export interface SerializedCodeGraph {
 
 export interface ParseOptions {
   tsConfigPath?: string;
+  tsConfigPaths?: string[];
   include?: string[];
   exclude?: string[];
   followAliases?: boolean;

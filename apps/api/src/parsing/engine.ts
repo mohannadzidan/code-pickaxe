@@ -8,6 +8,7 @@ import {
   SyntaxKind,
   MethodDeclaration,
   PropertyDeclaration,
+  ts,
 } from 'ts-morph';
 
 import type {
@@ -65,18 +66,35 @@ function getCodeDef(node: Node): CodeDefinition {
 }
 
 export class ParsingEngine {
+  private readonly compilerOptionsCache = new Map<string, ts.CompilerOptions>();
+  private readonly nearestTsConfigCache = new Map<string, string | null>();
+
   async parse(rootDir: string, options?: ParseOptions): Promise<CodeGraph> {
     const absRootDir = normalizePath(path.resolve(rootDir));
-    const tsConfigPath = options?.tsConfigPath ?? path.join(absRootDir, 'tsconfig.json');
-    const hasTsConfig = fs.existsSync(tsConfigPath);
+    this.compilerOptionsCache.clear();
+    this.nearestTsConfigCache.clear();
 
-    const project = new Project(
-      hasTsConfig
-        ? { tsConfigFilePath: tsConfigPath, skipAddingFilesFromTsConfig: false }
-        : { compilerOptions: { allowJs: false, strict: false } }
-    );
+    const requestedTsConfigs = options?.tsConfigPaths
+      ? options.tsConfigPaths
+      : options?.tsConfigPath
+        ? [options.tsConfigPath]
+        : this.findTsConfigPaths(absRootDir);
 
-    if (!hasTsConfig) {
+    const tsConfigPaths = requestedTsConfigs
+      .map((p) => normalizePath(path.resolve(absRootDir, p)))
+      .filter((p) => fs.existsSync(p));
+    const tsConfigSet = new Set(tsConfigPaths);
+
+    const project = new Project({
+      compilerOptions: { allowJs: false, strict: false },
+      skipAddingFilesFromTsConfig: true,
+    });
+
+    if (tsConfigPaths.length > 0) {
+      for (const configPath of tsConfigPaths) {
+        project.addSourceFilesFromTsConfig(configPath);
+      }
+    } else {
       project.addSourceFilesAtPaths(`${absRootDir}/**/*.ts`);
       project.addSourceFilesAtPaths(`${absRootDir}/**/*.tsx`);
     }
@@ -112,7 +130,13 @@ export class ParsingEngine {
 
       // Resolve specifiers and update resolvedModuleId
       for (const [, sym] of importMap) {
-        const resolved = this.resolveSpecifier(sym.moduleSpecifier, sf, filePathToModuleId);
+        const resolved = this.resolveSpecifier(
+          sym.moduleSpecifier,
+          sf,
+          filePathToModuleId,
+          absRootDir,
+          tsConfigSet
+        );
         if (resolved) {
           sym.resolvedModuleId = resolved;
         } else {
@@ -588,7 +612,9 @@ export class ParsingEngine {
   private resolveSpecifier(
     specifier: string,
     sf: SourceFile,
-    filePathToModuleId: Map<string, EntityId>
+    filePathToModuleId: Map<string, EntityId>,
+    rootDir: string,
+    tsConfigSet: Set<string>
   ): EntityId | null {
     const importDecl = sf.getImportDeclarations().find(
       (decl) => decl.getModuleSpecifierValue() === specifier
@@ -597,6 +623,27 @@ export class ParsingEngine {
     if (resolvedSourceFile) {
       const resolvedModuleId = filePathToModuleId.get(normalizePath(resolvedSourceFile.getFilePath()));
       if (resolvedModuleId) return resolvedModuleId;
+    }
+
+    const containingFile = normalizePath(sf.getFilePath());
+    const nearestTsConfigPath = this.findNearestTsConfig(containingFile, rootDir, tsConfigSet);
+    if (nearestTsConfigPath) {
+      const compilerOptions = this.getCompilerOptions(nearestTsConfigPath);
+      const resolvedModule = ts.resolveModuleName(
+        specifier,
+        containingFile,
+        compilerOptions,
+        ts.sys
+      ).resolvedModule;
+
+      if (resolvedModule?.resolvedFileName) {
+        const resolvedFile = normalizePath(resolvedModule.resolvedFileName);
+        const moduleId =
+          filePathToModuleId.get(resolvedFile) ??
+          filePathToModuleId.get(resolvedFile.replace(/\.d\.ts$/, '.ts'));
+
+        if (moduleId) return moduleId;
+      }
     }
 
     if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null;
@@ -617,6 +664,88 @@ export class ParsingEngine {
     }
 
     return null;
+  }
+
+  private findTsConfigPaths(rootDir: string): string[] {
+    const results: string[] = [];
+    const excludedDirs = new Set(['node_modules', 'dist', '.git', '.turbo']);
+
+    const visit = (dir: string): void => {
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (excludedDirs.has(entry.name)) continue;
+          visit(fullPath);
+          continue;
+        }
+
+        if (entry.isFile() && entry.name === 'tsconfig.json') {
+          results.push(normalizePath(fullPath));
+        }
+      }
+    };
+
+    visit(rootDir);
+
+    return results;
+  }
+
+  private findNearestTsConfig(
+    filePath: string,
+    rootDir: string,
+    tsConfigSet: Set<string>
+  ): string | null {
+    const fileDir = normalizePath(path.dirname(filePath));
+    const cached = this.nearestTsConfigCache.get(fileDir);
+    if (cached !== undefined) return cached;
+
+    const normalizedRoot = normalizePath(rootDir);
+    let current = fileDir;
+
+    while (true) {
+      const candidate = normalizePath(path.join(current, 'tsconfig.json'));
+      if (tsConfigSet.has(candidate)) {
+        this.nearestTsConfigCache.set(fileDir, candidate);
+        return candidate;
+      }
+
+      if (current === normalizedRoot) break;
+      const parent = normalizePath(path.dirname(current));
+      if (parent === current) break;
+      current = parent;
+    }
+
+    this.nearestTsConfigCache.set(fileDir, null);
+    return null;
+  }
+
+  private getCompilerOptions(tsConfigPath: string): ts.CompilerOptions {
+    const cached = this.compilerOptionsCache.get(tsConfigPath);
+    if (cached) return cached;
+
+    const readResult = ts.readConfigFile(tsConfigPath, ts.sys.readFile);
+    if (readResult.error) {
+      this.compilerOptionsCache.set(tsConfigPath, {});
+      return {};
+    }
+
+    const parsed = ts.parseJsonConfigFileContent(
+      readResult.config,
+      ts.sys,
+      path.dirname(tsConfigPath),
+      undefined,
+      tsConfigPath
+    );
+
+    this.compilerOptionsCache.set(tsConfigPath, parsed.options);
+    return parsed.options;
   }
 
   private attributeUsages(
