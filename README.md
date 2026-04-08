@@ -13,9 +13,6 @@
 
 </div>
 
-
-Code Pickaxe is a code analysis tool that turns your codebase into an interactive visual graph.
-
 Instead of reading files one by one, you can explore modules, classes, functions, and their dependencies as connected nodes—making architecture easier to understand for humans.
 
 ## Why use it?
