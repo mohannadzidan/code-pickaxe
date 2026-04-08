@@ -1,6 +1,6 @@
 {
-  "name": "react-trpc-turbo",
-  "version": "1.0.0",
+  "name": "code-pickaxe",
+  "version": "0.0.1-alpha",
   "private": true,
   "scripts": {
     "build": "turbo build",

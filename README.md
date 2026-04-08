@@ -1,4 +1,18 @@
-# Code Pickaxe
+<div align="center">
+
+<img src="./apps/web/public/icon.svg" width="144"/>
+
+  <h1 align="center">Code Pickaxe</h1>
+
+  <p align="center">
+    <strong>Code Pickaxe is a code analysis tool that turns your codebase into an interactive visual graph.</strong>
+  </p>
+
+![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/mohannadzidan/code-pickaxe/main?label=version&link=https%3A%2F%2Fgithub.com%2Fmohannadzidan%2Fcode-pickaxe)
+
+
+</div>
+
 
 Code Pickaxe is a code analysis tool that turns your codebase into an interactive visual graph.
 
