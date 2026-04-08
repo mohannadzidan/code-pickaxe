@@ -6,11 +6,8 @@ import {
   Node,
   Identifier,
   SyntaxKind,
-  ClassDeclaration,
   MethodDeclaration,
   PropertyDeclaration,
-  VariableStatement,
-  ScriptKind,
 } from 'ts-morph';
 
 import type {
@@ -593,6 +590,15 @@ export class ParsingEngine {
     sf: SourceFile,
     filePathToModuleId: Map<string, EntityId>
   ): EntityId | null {
+    const importDecl = sf.getImportDeclarations().find(
+      (decl) => decl.getModuleSpecifierValue() === specifier
+    );
+    const resolvedSourceFile = importDecl?.getModuleSpecifierSourceFile();
+    if (resolvedSourceFile) {
+      const resolvedModuleId = filePathToModuleId.get(normalizePath(resolvedSourceFile.getFilePath()));
+      if (resolvedModuleId) return resolvedModuleId;
+    }
+
     if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null;
 
     const fromDir = path.dirname(sf.getFilePath());
