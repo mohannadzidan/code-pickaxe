@@ -68,18 +68,27 @@ export class GraphProjectionService {
       }
     };
 
-    const resolveImportedMemberTarget = (moduleId: EntityId, symbolName: string): EntityId | null => {
+    const resolveImportedMemberTarget = (
+      moduleId: EntityId,
+      symbolName: string,
+      isDefaultImport: boolean
+    ): EntityId | null => {
       const moduleEntity = data.entities[moduleId];
       if (!moduleEntity || moduleEntity.kind !== "module") return null;
 
-      for (const childId of moduleEntity.children) {
-        const child = data.entities[childId];
-        if (!child) continue;
-        if (!child.exported) continue;
-        if (child.name !== symbolName) continue;
-        if (!nodeIds.has(child.id)) continue;
-        return child.id;
-      }
+      const exportedVisibleChildren = moduleEntity.children
+        .map((childId) => data.entities[childId])
+        .filter((child): child is CodeEntity => Boolean(child && child.exported && nodeIds.has(child.id)));
+
+      const namedMatch = exportedVisibleChildren.find((child) => child.name === symbolName);
+      if (namedMatch) return namedMatch.id;
+
+      if (!isDefaultImport) return null;
+
+      const defaultMarked = exportedVisibleChildren.filter((child) => child.sourceText?.includes("export default"));
+      if (defaultMarked.length === 1) return defaultMarked[0].id;
+
+      if (exportedVisibleChildren.length === 1) return exportedVisibleChildren[0].id;
 
       return null;
     };
@@ -88,11 +97,14 @@ export class GraphProjectionService {
       const targetEntity = data.entities[dep.target];
       if (
         targetEntity?.kind === "module" &&
-        !dep.importedSymbol.isDefault &&
         !dep.importedSymbol.isNamespace &&
         dep.importedSymbol.symbolName !== "*"
       ) {
-        const mappedMember = resolveImportedMemberTarget(targetEntity.id, dep.importedSymbol.symbolName);
+        const mappedMember = resolveImportedMemberTarget(
+          targetEntity.id,
+          dep.importedSymbol.symbolName,
+          dep.importedSymbol.isDefault
+        );
         if (mappedMember) return mappedMember;
       }
 

@@ -247,6 +247,27 @@ export class ParsingEngine {
       if (d > 0) keep.add(id);
     }
 
+    const findModuleAncestor = (id: EntityId): EntityId | null => {
+      let current: EntityId | null = id;
+      while (current) {
+        const entity = entities.get(current);
+        if (!entity) return null;
+        if (entity.kind === 'module') return entity.id;
+        current = entity.parent;
+      }
+      return null;
+    };
+
+    // Keep exported declarations if they belong to a module that survived dependency filtering.
+    // This preserves visible module APIs (e.g. exported type aliases) when modules are exploded.
+    for (const [id, entity] of entities.entries()) {
+      if (!entity.exported || entity.kind === 'module') continue;
+      const moduleId = findModuleAncestor(id);
+      if (moduleId && keep.has(moduleId)) {
+        keep.add(id);
+      }
+    }
+
     // Keep ancestor chain so surviving children remain reachable from their module/class parents.
     for (const id of Array.from(keep)) {
       let cur: EntityId | null = id;
@@ -555,6 +576,77 @@ export class ParsingEngine {
 
   private buildImportMap(sf: SourceFile): Map<string, ImportedSymbol> {
     const importMap = new Map<string, ImportedSymbol>();
+    let syntheticIndex = 0;
+
+    const nextSyntheticLocal = (prefix: string): string => {
+      syntheticIndex += 1;
+      return `__${prefix}_${syntheticIndex}`;
+    };
+
+    const addImport = (localName: string, symbol: ImportedSymbol): void => {
+      importMap.set(localName, symbol);
+    };
+
+    const unwrapImportExpr = (expr: Node | undefined): Node | undefined => {
+      if (!expr) return expr;
+      if (Node.isAwaitExpression(expr)) return expr.getExpression();
+      if (Node.isParenthesizedExpression(expr)) return unwrapImportExpr(expr.getExpression());
+      if (Node.isVoidExpression(expr)) return unwrapImportExpr(expr.getExpression());
+      return expr;
+    };
+
+    const tryGetRequireSpecifier = (expr: Node | undefined): string | null => {
+      const unwrapped = unwrapImportExpr(expr);
+      if (!unwrapped || !Node.isCallExpression(unwrapped)) return null;
+      if (unwrapped.getExpression().getText() !== 'require') return null;
+      const firstArg = unwrapped.getArguments()[0];
+      if (!firstArg || !Node.isStringLiteral(firstArg)) return null;
+      return firstArg.getLiteralValue();
+    };
+
+    const tryGetDynamicImportSpecifier = (expr: Node | undefined): string | null => {
+      const unwrapped = unwrapImportExpr(expr);
+      if (!unwrapped || !Node.isCallExpression(unwrapped)) return null;
+      if (unwrapped.getExpression().getKind() !== SyntaxKind.ImportKeyword) return null;
+      const firstArg = unwrapped.getArguments()[0];
+      if (!firstArg || !Node.isStringLiteral(firstArg)) return null;
+      return firstArg.getLiteralValue();
+    };
+
+    const addBindingImportSymbols = (
+      nameNode: Node,
+      moduleSpecifier: string,
+      options: { isTypeOnly: boolean; isDefault: boolean; isNamespace: boolean; symbolName?: string }
+    ): void => {
+      if (Node.isIdentifier(nameNode)) {
+        const localName = nameNode.getText();
+        addImport(localName, {
+          symbolName: options.symbolName ?? localName,
+          moduleSpecifier,
+          resolvedModuleId: null,
+          isTypeOnly: options.isTypeOnly,
+          isDefault: options.isDefault,
+          isNamespace: options.isNamespace,
+        });
+        return;
+      }
+
+      if (Node.isObjectBindingPattern(nameNode)) {
+        for (const el of nameNode.getElements()) {
+          const local = el.getNameNode();
+          if (!Node.isIdentifier(local)) continue;
+          const propertyName = el.getPropertyNameNode()?.getText() ?? el.getName();
+          addImport(local.getText(), {
+            symbolName: propertyName,
+            moduleSpecifier,
+            resolvedModuleId: null,
+            isTypeOnly: options.isTypeOnly,
+            isDefault: false,
+            isNamespace: false,
+          });
+        }
+      }
+    };
 
     for (const importDecl of sf.getImportDeclarations()) {
       const moduleSpecifier = importDecl.getModuleSpecifierValue();
@@ -564,7 +656,7 @@ export class ParsingEngine {
       const defaultImport = importDecl.getDefaultImport();
       if (defaultImport) {
         const localName = defaultImport.getText();
-        importMap.set(localName, {
+        addImport(localName, {
           symbolName: localName,
           moduleSpecifier,
           resolvedModuleId: null,
@@ -578,7 +670,7 @@ export class ParsingEngine {
       const namespaceImport = importDecl.getNamespaceImport();
       if (namespaceImport) {
         const localName = namespaceImport.getText();
-        importMap.set(localName, {
+        addImport(localName, {
           symbolName: '*',
           alias: localName,
           moduleSpecifier,
@@ -594,7 +686,7 @@ export class ParsingEngine {
         const symbolName = named.getName();
         const alias = named.getAliasNode()?.getText();
         const localName = alias ?? symbolName;
-        importMap.set(localName, {
+        addImport(localName, {
           symbolName,
           alias: alias !== symbolName ? alias : undefined,
           moduleSpecifier,
@@ -602,6 +694,131 @@ export class ParsingEngine {
           isTypeOnly: isTypeOnly || named.isTypeOnly(),
           isDefault: false,
           isNamespace: false,
+        });
+      }
+    }
+
+    // TypeScript import-equals syntax: import X = require("mod")
+    for (const stmt of sf.getStatements()) {
+      if (!Node.isImportEqualsDeclaration(stmt)) continue;
+      const moduleRef = stmt.getModuleReference();
+      if (!Node.isExternalModuleReference(moduleRef)) continue;
+      const expr = moduleRef.getExpression();
+      if (!expr || !Node.isStringLiteral(expr)) continue;
+
+      const moduleSpecifier = expr.getLiteralValue();
+      const localName = stmt.getName();
+      addImport(localName, {
+        symbolName: '*',
+        alias: localName,
+        moduleSpecifier,
+        resolvedModuleId: null,
+        isTypeOnly: false,
+        isDefault: false,
+        isNamespace: true,
+      });
+    }
+
+    // Re-exports: export { X } from "mod", export * from "mod", export * as ns from "mod"
+    for (const exportDecl of sf.getExportDeclarations()) {
+      const moduleSpecifier = exportDecl.getModuleSpecifierValue();
+      if (!moduleSpecifier) continue;
+
+      const named = exportDecl.getNamedExports();
+      if (named.length > 0) {
+        for (const n of named) {
+          const symbolName = n.getName();
+          const alias = n.getAliasNode()?.getText();
+          addImport(nextSyntheticLocal('reexport'), {
+            symbolName,
+            alias: alias !== symbolName ? alias : undefined,
+            moduleSpecifier,
+            resolvedModuleId: null,
+            isTypeOnly: exportDecl.isTypeOnly(),
+            isDefault: false,
+            isNamespace: false,
+          });
+        }
+      }
+
+      const namespaceExport = exportDecl.getNamespaceExport();
+      if (namespaceExport) {
+        const alias = namespaceExport.getName();
+        addImport(nextSyntheticLocal('reexport_ns'), {
+          symbolName: '*',
+          alias,
+          moduleSpecifier,
+          resolvedModuleId: null,
+          isTypeOnly: exportDecl.isTypeOnly(),
+          isDefault: false,
+          isNamespace: true,
+        });
+        continue;
+      }
+
+      if (named.length === 0) {
+        addImport(nextSyntheticLocal('reexport_all'), {
+          symbolName: '*',
+          moduleSpecifier,
+          resolvedModuleId: null,
+          isTypeOnly: exportDecl.isTypeOnly(),
+          isDefault: false,
+          isNamespace: true,
+        });
+      }
+    }
+
+    // CommonJS require() and dynamic import() bindings in variable declarations
+    // (top-level and function-scoped).
+    for (const decl of sf.getDescendantsOfKind(SyntaxKind.VariableDeclaration)) {
+      const init = decl.getInitializer();
+      const requireSpecifier = tryGetRequireSpecifier(init);
+      if (requireSpecifier) {
+        addBindingImportSymbols(decl.getNameNode(), requireSpecifier, {
+          isTypeOnly: false,
+          isDefault: true,
+          isNamespace: true,
+        });
+        continue;
+      }
+
+      const dynSpecifier = tryGetDynamicImportSpecifier(init);
+      if (dynSpecifier) {
+        addBindingImportSymbols(decl.getNameNode(), dynSpecifier, {
+          isTypeOnly: false,
+          isDefault: false,
+          isNamespace: true,
+          symbolName: '*',
+        });
+      }
+    }
+
+    // Side-effect require()/import() (no local binding): attribute to module code-block.
+    for (const stmt of sf.getStatements()) {
+      if (!Node.isExpressionStatement(stmt)) continue;
+      const expr = stmt.getExpression();
+      const requireSpecifier = tryGetRequireSpecifier(expr);
+      if (requireSpecifier) {
+        addImport(nextSyntheticLocal('require_side_effect'), {
+          symbolName: '*',
+          moduleSpecifier: requireSpecifier,
+          resolvedModuleId: null,
+          isTypeOnly: false,
+          isDefault: false,
+          isNamespace: true,
+        });
+        continue;
+      }
+
+      const dynSpecifier = tryGetDynamicImportSpecifier(expr);
+      if (dynSpecifier) {
+        addImport(nextSyntheticLocal('dynamic_import_side_effect'), {
+          symbolName: '*',
+          moduleSpecifier: dynSpecifier,
+          resolvedModuleId: null,
+          isTypeOnly: false,
+          isDefault: false,
+          isNamespace: true,
         });
       }
     }
