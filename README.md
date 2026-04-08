@@ -72,6 +72,8 @@ From repository root:
 
 - `pnpm dev` — run development mode
 - `pnpm build` — build all workspace targets
+- `pnpm test` — run unit tests across workspace apps
+- `pnpm test:watch` — run unit tests in watch mode
 - `pnpm start:backend` — start built backend server
 - `pnpm lint` — run linter
 

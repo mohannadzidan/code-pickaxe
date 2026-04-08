@@ -1,0 +1,3149 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '01-basic-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\01-basic-imports' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./math",
+        "resolvedModuleId": "src/math.ts",
+        "symbolName": "mul",
+      },
+      "source": "src/index.ts::area",
+      "target": "src/math.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 26,
+            "endColumn": 29,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./math",
+        "resolvedModuleId": "src/math.ts",
+        "symbolName": "PI",
+      },
+      "source": "src/index.ts::area",
+      "target": "src/math.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 21,
+            "endColumn": 23,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": "add",
+        "isDefault": true,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./math",
+        "resolvedModuleId": "src/math.ts",
+        "symbolName": "default",
+      },
+      "source": "src/index.ts::sum",
+      "target": "src/math.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 20,
+            "endColumn": 23,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::area",
+        "src/index.ts::sum",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 5,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::sum",
+        "src/index.ts::area",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import add, { PI, mul } from "./math";
+
+export const sum = add(2, 3);
+export const area = PI * mul(2, 2);
+",
+    },
+    "src/index.ts::area": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 35,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": true,
+      "id": "src/index.ts::area",
+      "kind": "variable",
+      "name": "area",
+      "parent": "src/index.ts",
+      "sourceText": "export const area = PI * mul(2, 2);",
+      "typeText": undefined,
+    },
+    "src/index.ts::sum": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 29,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::sum",
+      "kind": "variable",
+      "name": "sum",
+      "parent": "src/index.ts",
+      "sourceText": "export const sum = add(2, 3);",
+      "typeText": undefined,
+    },
+    "src/math.ts": {
+      "canExplode": true,
+      "children": [
+        "src/math.ts::PI",
+        "src/math.ts::add",
+        "src/math.ts::mul",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 10,
+        "file": "src/math.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/math.ts",
+      "kind": "module",
+      "members": [
+        "src/math.ts::add",
+        "src/math.ts::mul",
+        "src/math.ts::PI",
+      ],
+      "name": "math.ts",
+      "parent": null,
+      "sourceText": "export default function add(a: number, b: number): number {
+  return a + b;
+}
+
+export const PI = 3.14159;
+
+export function mul(a: number, b: number): number {
+  return a * b;
+}
+",
+    },
+    "src/math.ts::PI": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 26,
+        "endLine": 5,
+        "file": "src/math.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/math.ts::PI",
+      "kind": "variable",
+      "name": "PI",
+      "parent": "src/math.ts",
+      "sourceText": "export const PI = 3.14159;",
+      "typeText": undefined,
+    },
+    "src/math.ts::add": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 3,
+        "file": "src/math.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/math.ts::add",
+      "kind": "function",
+      "name": "add",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "a",
+          "typeText": "number",
+        },
+        {
+          "isOptional": false,
+          "name": "b",
+          "typeText": "number",
+        },
+      ],
+      "parent": "src/math.ts",
+      "returnType": "number",
+      "sourceText": "export default function add(a: number, b: number): number {
+  return a + b;
+}",
+    },
+    "src/math.ts::mul": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 9,
+        "file": "src/math.ts",
+        "line": 7,
+      },
+      "exported": true,
+      "id": "src/math.ts::mul",
+      "kind": "function",
+      "name": "mul",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "a",
+          "typeText": "number",
+        },
+        {
+          "isOptional": false,
+          "name": "b",
+          "typeText": "number",
+        },
+      ],
+      "parent": "src/math.ts",
+      "returnType": "number",
+      "sourceText": "export function mul(a: number, b: number): number {
+  return a * b;
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/index.ts",
+    "src/math.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '02-type-only-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\02-type-only-imports' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./types",
+        "resolvedModuleId": "src/types.ts",
+        "symbolName": "LayoutDirection",
+      },
+      "source": "src/consumer.ts::GraphConfig",
+      "target": "src/types.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 14,
+            "endColumn": 29,
+            "endLine": 4,
+            "file": "src/consumer.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./types",
+        "resolvedModuleId": "src/types.ts",
+        "symbolName": "NodeMeta",
+      },
+      "source": "src/consumer.ts::GraphConfig",
+      "target": "src/types.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 13,
+            "endColumn": 21,
+            "endLine": 5,
+            "file": "src/consumer.ts",
+            "line": 5,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/consumer.ts": {
+      "canExplode": true,
+      "children": [
+        "src/consumer.ts::GraphConfig",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 7,
+        "file": "src/consumer.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/consumer.ts",
+      "kind": "module",
+      "members": [
+        "src/consumer.ts::GraphConfig",
+      ],
+      "name": "consumer.ts",
+      "parent": null,
+      "sourceText": "import type { LayoutDirection, NodeMeta } from "./types";
+
+export type GraphConfig = {
+  direction: LayoutDirection;
+  selected: NodeMeta | null;
+};
+",
+    },
+    "src/consumer.ts::GraphConfig": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 3,
+        "endLine": 6,
+        "file": "src/consumer.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/consumer.ts::GraphConfig",
+      "kind": "type-alias",
+      "name": "GraphConfig",
+      "parent": "src/consumer.ts",
+      "sourceText": "export type GraphConfig = {
+  direction: LayoutDirection;
+  selected: NodeMeta | null;
+};",
+      "typeText": "{
+  direction: LayoutDirection;
+  selected: NodeMeta | null;
+}",
+    },
+    "src/types.ts": {
+      "canExplode": true,
+      "children": [
+        "src/types.ts::LayoutDirection",
+        "src/types.ts::NodeMeta",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 7,
+        "file": "src/types.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/types.ts",
+      "kind": "module",
+      "members": [
+        "src/types.ts::LayoutDirection",
+        "src/types.ts::NodeMeta",
+      ],
+      "name": "types.ts",
+      "parent": null,
+      "sourceText": "export type LayoutDirection = "TB" | "LR";
+
+export interface NodeMeta {
+  id: string;
+  kind: "module" | "function";
+}
+",
+    },
+    "src/types.ts::LayoutDirection": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 43,
+        "endLine": 1,
+        "file": "src/types.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/types.ts::LayoutDirection",
+      "kind": "type-alias",
+      "name": "LayoutDirection",
+      "parent": "src/types.ts",
+      "sourceText": "export type LayoutDirection = "TB" | "LR";",
+      "typeText": ""TB" | "LR"",
+    },
+    "src/types.ts::NodeMeta": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 6,
+        "file": "src/types.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "extends": undefined,
+      "id": "src/types.ts::NodeMeta",
+      "kind": "interface",
+      "members": [],
+      "name": "NodeMeta",
+      "parent": "src/types.ts",
+      "sourceText": "export interface NodeMeta {
+  id: string;
+  kind: "module" | "function";
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/consumer.ts",
+    "src/types.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '03-reexports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\03-reexports' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./constants",
+        "resolvedModuleId": "src/constants.ts",
+        "symbolName": "*",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/constants.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./models",
+        "resolvedModuleId": "src/models.ts",
+        "symbolName": "User",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/models.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./utils",
+        "resolvedModuleId": "src/utils.ts",
+        "symbolName": "formatUser",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/utils.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "formatUser",
+      },
+      "source": "src/index.ts::text",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 35,
+            "endColumn": 45,
+            "endLine": 5,
+            "file": "src/index.ts",
+            "line": 5,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "VERSION",
+      },
+      "source": "src/index.ts::text",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 24,
+            "endColumn": 31,
+            "endLine": 5,
+            "file": "src/index.ts",
+            "line": 5,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "User",
+      },
+      "source": "src/index.ts::user",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 13,
+            "endColumn": 17,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./models",
+        "resolvedModuleId": "src/models.ts",
+        "symbolName": "User",
+      },
+      "source": "src/utils.ts::formatUser",
+      "target": "src/models.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 34,
+            "endColumn": 38,
+            "endLine": 3,
+            "file": "src/utils.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/barrel.ts": {
+      "canExplode": true,
+      "children": [
+        "src/barrel.ts::__code__",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/barrel.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/barrel.ts",
+      "kind": "module",
+      "members": [
+        "src/barrel.ts::__code__",
+      ],
+      "name": "barrel.ts",
+      "parent": null,
+      "sourceText": "export { formatUser } from "./utils";
+export type { User } from "./models";
+export * from "./constants";
+",
+    },
+    "src/barrel.ts::__code__": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/barrel.ts",
+        "line": 1,
+      },
+      "exported": false,
+      "id": "src/barrel.ts::__code__",
+      "kind": "code-block",
+      "name": "__code__",
+      "parent": "src/barrel.ts",
+    },
+    "src/constants.ts": {
+      "canExplode": true,
+      "children": [
+        "src/constants.ts::VERSION",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 2,
+        "file": "src/constants.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/constants.ts",
+      "kind": "module",
+      "members": [
+        "src/constants.ts::VERSION",
+      ],
+      "name": "constants.ts",
+      "parent": null,
+      "sourceText": "export const VERSION = "1.0.0";
+",
+    },
+    "src/constants.ts::VERSION": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 31,
+        "endLine": 1,
+        "file": "src/constants.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/constants.ts::VERSION",
+      "kind": "variable",
+      "name": "VERSION",
+      "parent": "src/constants.ts",
+      "sourceText": "export const VERSION = "1.0.0";",
+      "typeText": undefined,
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::text",
+        "src/index.ts::user",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::user",
+        "src/index.ts::text",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import { formatUser, VERSION } from "./barrel";
+import type { User } from "./barrel";
+
+const user: User = { id: "u1", name: "Ada" };
+export const text = \`\${VERSION}:\${formatUser(user)}\`;
+",
+    },
+    "src/index.ts::text": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 53,
+        "endLine": 5,
+        "file": "src/index.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/index.ts::text",
+      "kind": "variable",
+      "name": "text",
+      "parent": "src/index.ts",
+      "sourceText": "export const text = \`\${VERSION}:\${formatUser(user)}\`;",
+      "typeText": undefined,
+    },
+    "src/index.ts::user": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 7,
+        "endColumn": 45,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": false,
+      "id": "src/index.ts::user",
+      "kind": "variable",
+      "name": "user",
+      "parent": "src/index.ts",
+      "sourceText": "const user: User = { id: "u1", name: "Ada" };",
+      "typeText": "User",
+    },
+    "src/models.ts": {
+      "canExplode": true,
+      "children": [
+        "src/models.ts::User",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 5,
+        "file": "src/models.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/models.ts",
+      "kind": "module",
+      "members": [
+        "src/models.ts::User",
+      ],
+      "name": "models.ts",
+      "parent": null,
+      "sourceText": "export interface User {
+  id: string;
+  name: string;
+}
+",
+    },
+    "src/models.ts::User": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 4,
+        "file": "src/models.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "extends": undefined,
+      "id": "src/models.ts::User",
+      "kind": "interface",
+      "members": [],
+      "name": "User",
+      "parent": "src/models.ts",
+      "sourceText": "export interface User {
+  id: string;
+  name: string;
+}",
+    },
+    "src/utils.ts": {
+      "canExplode": true,
+      "children": [
+        "src/utils.ts::formatUser",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/utils.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/utils.ts",
+      "kind": "module",
+      "members": [
+        "src/utils.ts::formatUser",
+      ],
+      "name": "utils.ts",
+      "parent": null,
+      "sourceText": "import type { User } from "./models";
+
+export function formatUser(user: User): string {
+  return \`\${user.id}:\${user.name}\`;
+}
+",
+    },
+    "src/utils.ts::formatUser": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/utils.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/utils.ts::formatUser",
+      "kind": "function",
+      "name": "formatUser",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "user",
+          "typeText": "User",
+        },
+      ],
+      "parent": "src/utils.ts",
+      "returnType": "string",
+      "sourceText": "export function formatUser(user: User): string {
+  return \`\${user.id}:\${user.name}\`;
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/barrel.ts",
+    "src/constants.ts",
+    "src/index.ts",
+    "src/models.ts",
+    "src/utils.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '04-import-equals', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\04-import-equals' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": "legacyApi",
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./legacy",
+        "resolvedModuleId": "src/legacy.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::output",
+      "target": "src/legacy.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 23,
+            "endColumn": 32,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::output",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::output",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import legacyApi = require("./legacy");
+
+export const output = legacyApi.oldFn("hello");
+",
+    },
+    "src/index.ts::output": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 47,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::output",
+      "kind": "variable",
+      "name": "output",
+      "parent": "src/index.ts",
+      "sourceText": "export const output = legacyApi.oldFn("hello");",
+      "typeText": undefined,
+    },
+    "src/legacy.ts": {
+      "canExplode": true,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 8,
+        "file": "src/legacy.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/legacy.ts",
+      "kind": "module",
+      "members": [],
+      "name": "legacy.ts",
+      "parent": null,
+      "sourceText": "const legacyApi = {
+  oldFn(input: string): string {
+    return input.toUpperCase();
+  },
+};
+
+export = legacyApi;
+",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/index.ts",
+    "src/legacy.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '05-commonjs-require', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\05-commonjs-require' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./helpers",
+        "resolvedModuleId": "src/helpers.ts",
+        "symbolName": "twice",
+      },
+      "source": "src/index.ts::{ twice }",
+      "target": "src/helpers.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 9,
+            "endColumn": 14,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "isDefault": true,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./helpers",
+        "resolvedModuleId": "src/helpers.ts",
+        "symbolName": "helpers",
+      },
+      "source": "src/index.ts::a",
+      "target": "src/helpers.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 18,
+            "endColumn": 25,
+            "endLine": 6,
+            "file": "src/index.ts",
+            "line": 6,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./helpers",
+        "resolvedModuleId": "src/helpers.ts",
+        "symbolName": "twice",
+      },
+      "source": "src/index.ts::b",
+      "target": "src/helpers.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 18,
+            "endColumn": 23,
+            "endLine": 7,
+            "file": "src/index.ts",
+            "line": 7,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "isDefault": true,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./helpers",
+        "resolvedModuleId": "src/helpers.ts",
+        "symbolName": "helpers",
+      },
+      "source": "src/index.ts::helpers",
+      "target": "src/helpers.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 7,
+            "endColumn": 14,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/helpers.ts": {
+      "canExplode": true,
+      "children": [
+        "src/helpers.ts::label",
+        "src/helpers.ts::twice",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/helpers.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/helpers.ts",
+      "kind": "module",
+      "members": [
+        "src/helpers.ts::twice",
+        "src/helpers.ts::label",
+      ],
+      "name": "helpers.ts",
+      "parent": null,
+      "sourceText": "export const label = "helper";
+
+export function twice(n: number): number {
+  return n * 2;
+}
+",
+    },
+    "src/helpers.ts::label": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 30,
+        "endLine": 1,
+        "file": "src/helpers.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/helpers.ts::label",
+      "kind": "variable",
+      "name": "label",
+      "parent": "src/helpers.ts",
+      "sourceText": "export const label = "helper";",
+      "typeText": undefined,
+    },
+    "src/helpers.ts::twice": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/helpers.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/helpers.ts::twice",
+      "kind": "function",
+      "name": "twice",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "n",
+          "typeText": "number",
+        },
+      ],
+      "parent": "src/helpers.ts",
+      "returnType": "number",
+      "sourceText": "export function twice(n: number): number {
+  return n * 2;
+}",
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::a",
+        "src/index.ts::b",
+        "src/index.ts::helpers",
+        "src/index.ts::{ twice }",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 8,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::helpers",
+        "src/index.ts::{ twice }",
+        "src/index.ts::a",
+        "src/index.ts::b",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "declare function require(moduleName: string): any;
+
+const helpers = require("./helpers");
+const { twice } = require("./helpers");
+
+export const a = helpers.label;
+export const b = twice(21);
+",
+    },
+    "src/index.ts::a": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 31,
+        "endLine": 6,
+        "file": "src/index.ts",
+        "line": 6,
+      },
+      "exported": true,
+      "id": "src/index.ts::a",
+      "kind": "variable",
+      "name": "a",
+      "parent": "src/index.ts",
+      "sourceText": "export const a = helpers.label;",
+      "typeText": undefined,
+    },
+    "src/index.ts::b": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 27,
+        "endLine": 7,
+        "file": "src/index.ts",
+        "line": 7,
+      },
+      "exported": true,
+      "id": "src/index.ts::b",
+      "kind": "variable",
+      "name": "b",
+      "parent": "src/index.ts",
+      "sourceText": "export const b = twice(21);",
+      "typeText": undefined,
+    },
+    "src/index.ts::helpers": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 7,
+        "endColumn": 37,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": false,
+      "id": "src/index.ts::helpers",
+      "kind": "variable",
+      "name": "helpers",
+      "parent": "src/index.ts",
+      "sourceText": "const helpers = require("./helpers");",
+      "typeText": undefined,
+    },
+    "src/index.ts::{ twice }": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 7,
+        "endColumn": 39,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": false,
+      "id": "src/index.ts::{ twice }",
+      "kind": "variable",
+      "name": "{ twice }",
+      "parent": "src/index.ts",
+      "sourceText": "const { twice } = require("./helpers");",
+      "typeText": undefined,
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/helpers.ts",
+    "src/index.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '06-dynamic-import', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\06-dynamic-import' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./plugin",
+        "resolvedModuleId": "src/plugin.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::__code__",
+      "target": "src/plugin.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./plugin",
+        "resolvedModuleId": "src/plugin.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::boot",
+      "target": "src/plugin.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 9,
+            "endColumn": 12,
+            "endLine": 2,
+            "file": "src/index.ts",
+            "line": 2,
+          },
+        },
+        {
+          "context": "reference",
+          "location": {
+            "column": 13,
+            "endColumn": 16,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+        {
+          "context": "reference",
+          "location": {
+            "column": 30,
+            "endColumn": 33,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::__code__",
+        "src/index.ts::boot",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 7,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::boot",
+        "src/index.ts::__code__",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "export async function boot(): Promise<string> {
+  const mod = await import("./plugin");
+  return \`\${mod.default()}:\${mod.pluginName}\`;
+}
+
+void import("./plugin");
+",
+    },
+    "src/index.ts::__code__": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 25,
+        "endLine": 6,
+        "file": "src/index.ts",
+        "line": 6,
+      },
+      "exported": false,
+      "id": "src/index.ts::__code__",
+      "kind": "code-block",
+      "name": "__code__",
+      "parent": "src/index.ts",
+    },
+    "src/index.ts::boot": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts::boot",
+      "kind": "function",
+      "name": "boot",
+      "parameters": [],
+      "parent": "src/index.ts",
+      "returnType": "Promise<string>",
+      "sourceText": "export async function boot(): Promise<string> {
+  const mod = await import("./plugin");
+  return \`\${mod.default()}:\${mod.pluginName}\`;
+}",
+    },
+    "src/plugin.ts": {
+      "canExplode": true,
+      "children": [
+        "src/plugin.ts::pluginName",
+        "src/plugin.ts::runPlugin",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/plugin.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/plugin.ts",
+      "kind": "module",
+      "members": [
+        "src/plugin.ts::runPlugin",
+        "src/plugin.ts::pluginName",
+      ],
+      "name": "plugin.ts",
+      "parent": null,
+      "sourceText": "export default function runPlugin(): string {
+  return "ok";
+}
+
+export const pluginName = "sample-plugin";
+",
+    },
+    "src/plugin.ts::pluginName": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 42,
+        "endLine": 5,
+        "file": "src/plugin.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/plugin.ts::pluginName",
+      "kind": "variable",
+      "name": "pluginName",
+      "parent": "src/plugin.ts",
+      "sourceText": "export const pluginName = "sample-plugin";",
+      "typeText": undefined,
+    },
+    "src/plugin.ts::runPlugin": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 3,
+        "file": "src/plugin.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/plugin.ts::runPlugin",
+      "kind": "function",
+      "name": "runPlugin",
+      "parameters": [],
+      "parent": "src/plugin.ts",
+      "returnType": "string",
+      "sourceText": "export default function runPlugin(): string {
+  return "ok";
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/index.ts",
+    "src/plugin.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '07-class-hierarchy', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\07-class-hierarchy' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./user",
+        "resolvedModuleId": "src/user.ts",
+        "symbolName": "User",
+      },
+      "source": "src/index.ts::serialized",
+      "target": "src/user.ts",
+      "usages": [
+        {
+          "context": "instantiation",
+          "location": {
+            "column": 31,
+            "endColumn": 35,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./contracts",
+        "resolvedModuleId": "src/contracts.ts",
+        "symbolName": "BaseEntity",
+      },
+      "source": "src/user.ts::User",
+      "target": "src/contracts.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 27,
+            "endColumn": 37,
+            "endLine": 3,
+            "file": "src/user.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "./contracts",
+        "resolvedModuleId": "src/contracts.ts",
+        "symbolName": "Persistable",
+      },
+      "source": "src/user.ts::User",
+      "target": "src/contracts.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 49,
+            "endColumn": 60,
+            "endLine": 3,
+            "file": "src/user.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/contracts.ts": {
+      "canExplode": true,
+      "children": [
+        "src/contracts.ts::BaseEntity",
+        "src/contracts.ts::Persistable",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 8,
+        "file": "src/contracts.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/contracts.ts",
+      "kind": "module",
+      "members": [
+        "src/contracts.ts::BaseEntity",
+        "src/contracts.ts::Persistable",
+      ],
+      "name": "contracts.ts",
+      "parent": null,
+      "sourceText": "export interface Persistable {
+  save(): string;
+}
+
+export class BaseEntity {
+  constructor(public readonly id: string) {}
+}
+",
+    },
+    "src/contracts.ts::BaseEntity": {
+      "canExplode": true,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 7,
+        "file": "src/contracts.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "extends": undefined,
+      "id": "src/contracts.ts::BaseEntity",
+      "implements": undefined,
+      "kind": "class",
+      "members": [],
+      "name": "BaseEntity",
+      "parent": "src/contracts.ts",
+      "sourceText": "export class BaseEntity {
+  constructor(public readonly id: string) {}
+}",
+    },
+    "src/contracts.ts::Persistable": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 3,
+        "file": "src/contracts.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "extends": undefined,
+      "id": "src/contracts.ts::Persistable",
+      "kind": "interface",
+      "members": [],
+      "name": "Persistable",
+      "parent": "src/contracts.ts",
+      "sourceText": "export interface Persistable {
+  save(): string;
+}",
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::serialized",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::serialized",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import { User } from "./user";
+
+export const serialized = new User("u-1", "Lin").save();
+",
+    },
+    "src/index.ts::serialized": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 56,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::serialized",
+      "kind": "variable",
+      "name": "serialized",
+      "parent": "src/index.ts",
+      "sourceText": "export const serialized = new User("u-1", "Lin").save();",
+      "typeText": undefined,
+    },
+    "src/user.ts": {
+      "canExplode": true,
+      "children": [
+        "src/user.ts::User",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 15,
+        "file": "src/user.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/user.ts",
+      "kind": "module",
+      "members": [
+        "src/user.ts::User",
+      ],
+      "name": "user.ts",
+      "parent": null,
+      "sourceText": "import { BaseEntity, type Persistable } from "./contracts";
+
+export class User extends BaseEntity implements Persistable {
+  private displayName: string;
+
+  constructor(id: string, displayName: string) {
+    super(id);
+    this.displayName = displayName;
+  }
+
+  save(): string {
+    return \`\${this.id}:\${this.displayName}\`;
+  }
+}
+",
+    },
+    "src/user.ts::User": {
+      "canExplode": true,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 14,
+        "file": "src/user.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "extends": {
+        "resolvedEntityId": null,
+        "symbolName": "BaseEntity",
+      },
+      "id": "src/user.ts::User",
+      "implements": [
+        {
+          "resolvedEntityId": null,
+          "symbolName": "Persistable",
+        },
+      ],
+      "kind": "class",
+      "members": [],
+      "name": "User",
+      "parent": "src/user.ts",
+      "sourceText": "export class User extends BaseEntity implements Persistable {
+  private displayName: string;
+
+  constructor(id: string, displayName: string) {
+    super(id);
+    this.displayName = displayName;
+  }
+
+  save(): string {
+    return \`\${this.id}:\${this.displayName}\`;
+  }
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/contracts.ts",
+    "src/index.ts",
+    "src/user.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '08-enum-and-variables', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\08-enum-and-variables' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./status",
+        "resolvedModuleId": "src/status.ts",
+        "symbolName": "bumpAttempts",
+      },
+      "source": "src/index.ts::next",
+      "target": "src/status.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 7,
+            "endColumn": 19,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./status",
+        "resolvedModuleId": "src/status.ts",
+        "symbolName": "RETRY_LIMIT",
+      },
+      "source": "src/index.ts::next",
+      "target": "src/status.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 25,
+            "endColumn": 36,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./status",
+        "resolvedModuleId": "src/status.ts",
+        "symbolName": "TaskState",
+      },
+      "source": "src/index.ts::next",
+      "target": "src/status.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 25,
+            "endColumn": 34,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+        {
+          "context": "reference",
+          "location": {
+            "column": 45,
+            "endColumn": 54,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+        {
+          "context": "reference",
+          "location": {
+            "column": 10,
+            "endColumn": 19,
+            "endLine": 5,
+            "file": "src/index.ts",
+            "line": 5,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::next",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 7,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::next",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import { RETRY_LIMIT, TaskState, bumpAttempts } from "./status";
+
+export const next = (): TaskState => {
+  if (bumpAttempts() >= RETRY_LIMIT) return TaskState.Done;
+  return TaskState.Doing;
+};
+",
+    },
+    "src/index.ts::next": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 2,
+        "endLine": 6,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::next",
+      "kind": "variable",
+      "name": "next",
+      "parent": "src/index.ts",
+      "sourceText": "export const next = (): TaskState => {
+  if (bumpAttempts() >= RETRY_LIMIT) return TaskState.Done;
+  return TaskState.Doing;
+};",
+      "typeText": undefined,
+    },
+    "src/status.ts": {
+      "canExplode": true,
+      "children": [
+        "src/status.ts::RETRY_LIMIT",
+        "src/status.ts::TaskState",
+        "src/status.ts::attempts",
+        "src/status.ts::bumpAttempts",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 14,
+        "file": "src/status.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/status.ts",
+      "kind": "module",
+      "members": [
+        "src/status.ts::bumpAttempts",
+        "src/status.ts::TaskState",
+        "src/status.ts::RETRY_LIMIT",
+        "src/status.ts::attempts",
+      ],
+      "name": "status.ts",
+      "parent": null,
+      "sourceText": "export enum TaskState {
+  Todo = "todo",
+  Doing = "doing",
+  Done = "done",
+}
+
+export const RETRY_LIMIT = 3;
+export let attempts = 0;
+
+export function bumpAttempts(): number {
+  attempts += 1;
+  return attempts;
+}
+",
+    },
+    "src/status.ts::RETRY_LIMIT": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 29,
+        "endLine": 7,
+        "file": "src/status.ts",
+        "line": 7,
+      },
+      "exported": true,
+      "id": "src/status.ts::RETRY_LIMIT",
+      "kind": "variable",
+      "name": "RETRY_LIMIT",
+      "parent": "src/status.ts",
+      "sourceText": "export const RETRY_LIMIT = 3;",
+      "typeText": undefined,
+    },
+    "src/status.ts::TaskState": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/status.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/status.ts::TaskState",
+      "kind": "enum",
+      "members": [],
+      "name": "TaskState",
+      "parent": "src/status.ts",
+      "sourceText": "export enum TaskState {
+  Todo = "todo",
+  Doing = "doing",
+  Done = "done",
+}",
+    },
+    "src/status.ts::attempts": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "let",
+      "definition": {
+        "column": 12,
+        "endColumn": 24,
+        "endLine": 8,
+        "file": "src/status.ts",
+        "line": 8,
+      },
+      "exported": true,
+      "id": "src/status.ts::attempts",
+      "kind": "variable",
+      "name": "attempts",
+      "parent": "src/status.ts",
+      "sourceText": "export let attempts = 0;",
+      "typeText": undefined,
+    },
+    "src/status.ts::bumpAttempts": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 13,
+        "file": "src/status.ts",
+        "line": 10,
+      },
+      "exported": true,
+      "id": "src/status.ts::bumpAttempts",
+      "kind": "function",
+      "name": "bumpAttempts",
+      "parameters": [],
+      "parent": "src/status.ts",
+      "returnType": "number",
+      "sourceText": "export function bumpAttempts(): number {
+  attempts += 1;
+  return attempts;
+}",
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/index.ts",
+    "src/status.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '09-top-level-code-block', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\09-top-level-code-block' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./effects",
+        "resolvedModuleId": "src/effects.ts",
+        "symbolName": "flag",
+      },
+      "source": "src/bootstrap.ts::__code__",
+      "target": "src/effects.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./effects",
+        "resolvedModuleId": "src/effects.ts",
+        "symbolName": "logStartup",
+      },
+      "source": "src/bootstrap.ts::__code__",
+      "target": "src/effects.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./effects",
+        "resolvedModuleId": "src/effects.ts",
+        "symbolName": "flag",
+      },
+      "source": "src/index.ts::ready",
+      "target": "src/effects.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 22,
+            "endColumn": 26,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/bootstrap.ts": {
+      "canExplode": true,
+      "children": [
+        "src/bootstrap.ts::__code__",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 10,
+        "file": "src/bootstrap.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/bootstrap.ts",
+      "kind": "module",
+      "members": [
+        "src/bootstrap.ts::__code__",
+      ],
+      "name": "bootstrap.ts",
+      "parent": null,
+      "sourceText": "import { flag, logStartup } from "./effects";
+
+if (flag) {
+  logStartup("boot");
+}
+
+for (let i = 0; i < 1; i += 1) {
+  logStartup(\`loop:\${i}\`);
+}
+",
+    },
+    "src/bootstrap.ts::__code__": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/bootstrap.ts",
+        "line": 3,
+      },
+      "exported": false,
+      "id": "src/bootstrap.ts::__code__",
+      "kind": "code-block",
+      "name": "__code__",
+      "parent": "src/bootstrap.ts",
+    },
+    "src/effects.ts": {
+      "canExplode": true,
+      "children": [
+        "src/effects.ts::flag",
+        "src/effects.ts::logStartup",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/effects.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/effects.ts",
+      "kind": "module",
+      "members": [
+        "src/effects.ts::logStartup",
+        "src/effects.ts::flag",
+      ],
+      "name": "effects.ts",
+      "parent": null,
+      "sourceText": "export function logStartup(tag: string): void {
+  void tag;
+}
+
+export const flag = true;
+",
+    },
+    "src/effects.ts::flag": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 25,
+        "endLine": 5,
+        "file": "src/effects.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/effects.ts::flag",
+      "kind": "variable",
+      "name": "flag",
+      "parent": "src/effects.ts",
+      "sourceText": "export const flag = true;",
+      "typeText": undefined,
+    },
+    "src/effects.ts::logStartup": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 3,
+        "file": "src/effects.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/effects.ts::logStartup",
+      "kind": "function",
+      "name": "logStartup",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "tag",
+          "typeText": "string",
+        },
+      ],
+      "parent": "src/effects.ts",
+      "returnType": "void",
+      "sourceText": "export function logStartup(tag: string): void {
+  void tag;
+}",
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::ready",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 5,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::ready",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import "./bootstrap";
+import { flag } from "./effects";
+
+export const ready = flag;
+",
+    },
+    "src/index.ts::ready": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 26,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": true,
+      "id": "src/index.ts::ready",
+      "kind": "variable",
+      "name": "ready",
+      "parent": "src/index.ts",
+      "sourceText": "export const ready = flag;",
+      "typeText": undefined,
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/bootstrap.ts",
+    "src/effects.ts",
+    "src/index.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '10-namespace-and-barrel', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\10-namespace-and-barrel' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./math",
+        "resolvedModuleId": "src/math.ts",
+        "symbolName": "avg",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/math.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": "sum",
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./math",
+        "resolvedModuleId": "src/math.ts",
+        "symbolName": "default",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/math.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": "Str",
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./strings",
+        "resolvedModuleId": "src/strings.ts",
+        "symbolName": "*",
+      },
+      "source": "src/barrel.ts::__code__",
+      "target": "src/strings.ts",
+      "usages": [],
+    },
+    {
+      "importedSymbol": {
+        "alias": "Kit",
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::loud",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 21,
+            "endColumn": 24,
+            "endLine": 5,
+            "file": "src/index.ts",
+            "line": 5,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": "Kit",
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::mean",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 21,
+            "endColumn": 24,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": "Kit",
+        "isDefault": false,
+        "isNamespace": true,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./barrel",
+        "resolvedModuleId": "src/barrel.ts",
+        "symbolName": "*",
+      },
+      "source": "src/index.ts::total",
+      "target": "src/barrel.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 22,
+            "endColumn": 25,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/barrel.ts": {
+      "canExplode": true,
+      "children": [
+        "src/barrel.ts::__code__",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 3,
+        "file": "src/barrel.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/barrel.ts",
+      "kind": "module",
+      "members": [
+        "src/barrel.ts::__code__",
+      ],
+      "name": "barrel.ts",
+      "parent": null,
+      "sourceText": "export { default as sum, avg } from "./math";
+export * as Str from "./strings";
+",
+    },
+    "src/barrel.ts::__code__": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 3,
+        "file": "src/barrel.ts",
+        "line": 1,
+      },
+      "exported": false,
+      "id": "src/barrel.ts::__code__",
+      "kind": "code-block",
+      "name": "__code__",
+      "parent": "src/barrel.ts",
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::loud",
+        "src/index.ts::mean",
+        "src/index.ts::total",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::total",
+        "src/index.ts::mean",
+        "src/index.ts::loud",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import * as Kit from "./barrel";
+
+export const total = Kit.sum([1, 2, 3]);
+export const mean = Kit.avg([1, 2, 3]);
+export const loud = Kit.Str.upper("ok");
+",
+    },
+    "src/index.ts::loud": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 40,
+        "endLine": 5,
+        "file": "src/index.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/index.ts::loud",
+      "kind": "variable",
+      "name": "loud",
+      "parent": "src/index.ts",
+      "sourceText": "export const loud = Kit.Str.upper("ok");",
+      "typeText": undefined,
+    },
+    "src/index.ts::mean": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 39,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": true,
+      "id": "src/index.ts::mean",
+      "kind": "variable",
+      "name": "mean",
+      "parent": "src/index.ts",
+      "sourceText": "export const mean = Kit.avg([1, 2, 3]);",
+      "typeText": undefined,
+    },
+    "src/index.ts::total": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 40,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::total",
+      "kind": "variable",
+      "name": "total",
+      "parent": "src/index.ts",
+      "sourceText": "export const total = Kit.sum([1, 2, 3]);",
+      "typeText": undefined,
+    },
+    "src/math.ts": {
+      "canExplode": true,
+      "children": [
+        "src/math.ts::avg",
+        "src/math.ts::sum",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 8,
+        "file": "src/math.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/math.ts",
+      "kind": "module",
+      "members": [
+        "src/math.ts::sum",
+        "src/math.ts::avg",
+      ],
+      "name": "math.ts",
+      "parent": null,
+      "sourceText": "export default function sum(values: number[]): number {
+  return values.reduce((acc, n) => acc + n, 0);
+}
+
+export function avg(values: number[]): number {
+  return values.length === 0 ? 0 : sum(values) / values.length;
+}
+",
+    },
+    "src/math.ts::avg": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 7,
+        "file": "src/math.ts",
+        "line": 5,
+      },
+      "exported": true,
+      "id": "src/math.ts::avg",
+      "kind": "function",
+      "name": "avg",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "values",
+          "typeText": "number[]",
+        },
+      ],
+      "parent": "src/math.ts",
+      "returnType": "number",
+      "sourceText": "export function avg(values: number[]): number {
+  return values.length === 0 ? 0 : sum(values) / values.length;
+}",
+    },
+    "src/math.ts::sum": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 3,
+        "file": "src/math.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/math.ts::sum",
+      "kind": "function",
+      "name": "sum",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "values",
+          "typeText": "number[]",
+        },
+      ],
+      "parent": "src/math.ts",
+      "returnType": "number",
+      "sourceText": "export default function sum(values: number[]): number {
+  return values.reduce((acc, n) => acc + n, 0);
+}",
+    },
+    "src/strings.ts": {
+      "canExplode": true,
+      "children": [
+        "src/strings.ts::upper",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 2,
+        "file": "src/strings.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/strings.ts",
+      "kind": "module",
+      "members": [
+        "src/strings.ts::upper",
+      ],
+      "name": "strings.ts",
+      "parent": null,
+      "sourceText": "export const upper = (value: string): string => value.toUpperCase();
+",
+    },
+    "src/strings.ts::upper": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 68,
+        "endLine": 1,
+        "file": "src/strings.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/strings.ts::upper",
+      "kind": "variable",
+      "name": "upper",
+      "parent": "src/strings.ts",
+      "sourceText": "export const upper = (value: string): string => value.toUpperCase();",
+      "typeText": undefined,
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/barrel.ts",
+    "src/index.ts",
+    "src/math.ts",
+    "src/strings.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '11-path-aliases', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\11-path-aliases' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": true,
+        "moduleSpecifier": "@core/types",
+        "resolvedModuleId": "src/core/types.ts",
+        "symbolName": "Entity",
+      },
+      "source": "src/core/service.ts::toLabel",
+      "target": "src/core/types.ts",
+      "usages": [
+        {
+          "context": "type-annotation",
+          "location": {
+            "column": 33,
+            "endColumn": 39,
+            "endLine": 3,
+            "file": "src/core/service.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "@core/service",
+        "resolvedModuleId": "src/core/service.ts",
+        "symbolName": "toLabel",
+      },
+      "source": "src/index.ts::sample",
+      "target": "src/core/service.ts",
+      "usages": [
+        {
+          "context": "call",
+          "location": {
+            "column": 23,
+            "endColumn": 30,
+            "endLine": 3,
+            "file": "src/index.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/core/service.ts": {
+      "canExplode": true,
+      "children": [
+        "src/core/service.ts::toLabel",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/core/service.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/core/service.ts",
+      "kind": "module",
+      "members": [
+        "src/core/service.ts::toLabel",
+      ],
+      "name": "service.ts",
+      "parent": null,
+      "sourceText": "import type { Entity } from "@core/types";
+
+export function toLabel(entity: Entity): string {
+  return \`entity:\${entity.id}\`;
+}
+",
+    },
+    "src/core/service.ts::toLabel": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/core/service.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/core/service.ts::toLabel",
+      "kind": "function",
+      "name": "toLabel",
+      "parameters": [
+        {
+          "isOptional": false,
+          "name": "entity",
+          "typeText": "Entity",
+        },
+      ],
+      "parent": "src/core/service.ts",
+      "returnType": "string",
+      "sourceText": "export function toLabel(entity: Entity): string {
+  return \`entity:\${entity.id}\`;
+}",
+    },
+    "src/core/types.ts": {
+      "canExplode": true,
+      "children": [
+        "src/core/types.ts::Entity",
+        "src/core/types.ts::EntityId",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 6,
+        "file": "src/core/types.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/core/types.ts",
+      "kind": "module",
+      "members": [
+        "src/core/types.ts::EntityId",
+        "src/core/types.ts::Entity",
+      ],
+      "name": "types.ts",
+      "parent": null,
+      "sourceText": "export type EntityId = string;
+
+export interface Entity {
+  id: EntityId;
+}
+",
+    },
+    "src/core/types.ts::Entity": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 2,
+        "endLine": 5,
+        "file": "src/core/types.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "extends": undefined,
+      "id": "src/core/types.ts::Entity",
+      "kind": "interface",
+      "members": [],
+      "name": "Entity",
+      "parent": "src/core/types.ts",
+      "sourceText": "export interface Entity {
+  id: EntityId;
+}",
+    },
+    "src/core/types.ts::EntityId": {
+      "canExplode": false,
+      "children": [],
+      "definition": {
+        "column": 1,
+        "endColumn": 31,
+        "endLine": 1,
+        "file": "src/core/types.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/core/types.ts::EntityId",
+      "kind": "type-alias",
+      "name": "EntityId",
+      "parent": "src/core/types.ts",
+      "sourceText": "export type EntityId = string;",
+      "typeText": "string",
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::sample",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::sample",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import { toLabel } from "@core/service";
+
+export const sample = toLabel({ id: "e-1" });
+",
+    },
+    "src/index.ts::sample": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 45,
+        "endLine": 3,
+        "file": "src/index.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/index.ts::sample",
+      "kind": "variable",
+      "name": "sample",
+      "parent": "src/index.ts",
+      "sourceText": "export const sample = toLabel({ id: "e-1" });",
+      "typeText": undefined,
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/core/service.ts",
+    "src/core/types.ts",
+    "src/index.ts",
+  ],
+}
+`;
+
+exports[`ParsingEngine > matches normalized graph snapshot for { name: '12-circular-modules', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\12-circular-modules' } 1`] = `
+{
+  "dependencies": [
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./b",
+        "resolvedModuleId": "src/b.ts",
+        "symbolName": "bName",
+      },
+      "source": "src/a.ts::aName",
+      "target": "src/b.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 28,
+            "endColumn": 33,
+            "endLine": 3,
+            "file": "src/a.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./a",
+        "resolvedModuleId": "src/a.ts",
+        "symbolName": "aName",
+      },
+      "source": "src/b.ts::bName",
+      "target": "src/a.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 28,
+            "endColumn": 33,
+            "endLine": 3,
+            "file": "src/b.ts",
+            "line": 3,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./a",
+        "resolvedModuleId": "src/a.ts",
+        "symbolName": "aName",
+      },
+      "source": "src/index.ts::both",
+      "target": "src/a.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 24,
+            "endColumn": 29,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+    {
+      "importedSymbol": {
+        "alias": undefined,
+        "isDefault": false,
+        "isNamespace": false,
+        "isTypeOnly": false,
+        "moduleSpecifier": "./b",
+        "resolvedModuleId": "src/b.ts",
+        "symbolName": "bName",
+      },
+      "source": "src/index.ts::both",
+      "target": "src/b.ts",
+      "usages": [
+        {
+          "context": "reference",
+          "location": {
+            "column": 33,
+            "endColumn": 38,
+            "endLine": 4,
+            "file": "src/index.ts",
+            "line": 4,
+          },
+        },
+      ],
+    },
+  ],
+  "entities": {
+    "src/a.ts": {
+      "canExplode": true,
+      "children": [
+        "src/a.ts::aName",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/a.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/a.ts",
+      "kind": "module",
+      "members": [
+        "src/a.ts::aName",
+      ],
+      "name": "a.ts",
+      "parent": null,
+      "sourceText": "import { bName } from "./b";
+
+export const aName = \`A->\${bName}\`;
+",
+    },
+    "src/a.ts::aName": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 35,
+        "endLine": 3,
+        "file": "src/a.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/a.ts::aName",
+      "kind": "variable",
+      "name": "aName",
+      "parent": "src/a.ts",
+      "sourceText": "export const aName = \`A->\${bName}\`;",
+      "typeText": undefined,
+    },
+    "src/b.ts": {
+      "canExplode": true,
+      "children": [
+        "src/b.ts::bName",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 4,
+        "file": "src/b.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/b.ts",
+      "kind": "module",
+      "members": [
+        "src/b.ts::bName",
+      ],
+      "name": "b.ts",
+      "parent": null,
+      "sourceText": "import { aName } from "./a";
+
+export const bName = \`B->\${aName}\`;
+",
+    },
+    "src/b.ts::bName": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 35,
+        "endLine": 3,
+        "file": "src/b.ts",
+        "line": 3,
+      },
+      "exported": true,
+      "id": "src/b.ts::bName",
+      "kind": "variable",
+      "name": "bName",
+      "parent": "src/b.ts",
+      "sourceText": "export const bName = \`B->\${aName}\`;",
+      "typeText": undefined,
+    },
+    "src/index.ts": {
+      "canExplode": true,
+      "children": [
+        "src/index.ts::both",
+      ],
+      "definition": {
+        "column": 1,
+        "endColumn": 1,
+        "endLine": 5,
+        "file": "src/index.ts",
+        "line": 1,
+      },
+      "exported": true,
+      "id": "src/index.ts",
+      "kind": "module",
+      "members": [
+        "src/index.ts::both",
+      ],
+      "name": "index.ts",
+      "parent": null,
+      "sourceText": "import { aName } from "./a";
+import { bName } from "./b";
+
+export const both = \`\${aName}|\${bName}\`;
+",
+    },
+    "src/index.ts::both": {
+      "canExplode": false,
+      "children": [],
+      "declarationKind": "const",
+      "definition": {
+        "column": 14,
+        "endColumn": 40,
+        "endLine": 4,
+        "file": "src/index.ts",
+        "line": 4,
+      },
+      "exported": true,
+      "id": "src/index.ts::both",
+      "kind": "variable",
+      "name": "both",
+      "parent": "src/index.ts",
+      "sourceText": "export const both = \`\${aName}|\${bName}\`;",
+      "typeText": undefined,
+    },
+  },
+  "externalModules": [],
+  "modules": [
+    "src/a.ts",
+    "src/b.ts",
+    "src/index.ts",
+  ],
+}
+`;

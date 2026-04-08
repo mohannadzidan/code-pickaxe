@@ -7,6 +7,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/server",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint --cache --ext \".js,.ts,.tsx\" src",
     "type-check": "tsc",
     "build": "rimraf dist && tsc --noEmit false && tsc-alias",
