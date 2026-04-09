@@ -4,6 +4,7 @@ export type FileNodeData = {
   id: string;
   label: string;
   kind: string;
+  subKind?: string;
   filePath?: string;
   isExternal?: boolean;
   isSelected?: boolean;
@@ -14,9 +15,6 @@ const KIND_COLOR: Record<string, string> = {
   module:       "#6366f1",
   class:        "#0ea5e9",
   function:     "#10b981",
-  "type-alias": "#f59e0b",
-  interface:    "#8b5cf6",
-  enum:         "#ef4444",
   variable:     "#14b8a6",
   "code-block": "#64748b",
   method:       "#06b6d4",
@@ -27,9 +25,6 @@ const KIND_BADGE: Record<string, string> = {
   module:       "module",
   class:        "class",
   function:     "func",
-  "type-alias": "type",
-  interface:    "interface",
-  enum:         "enum",
   variable:     "var",
   "code-block": "{}",
   method:       "method",
@@ -40,7 +35,7 @@ export default function FileNode({ id, data }: NodeProps) {
   const d = data as unknown as FileNodeData;
 
   const color = KIND_COLOR[d.kind] ?? "#64748b";
-  const badge = KIND_BADGE[d.kind] ?? d.kind;
+  const badge = d.subKind ?? KIND_BADGE[d.kind] ?? d.kind;
   const isSelected = Boolean(d.isSelected);
 
   return (

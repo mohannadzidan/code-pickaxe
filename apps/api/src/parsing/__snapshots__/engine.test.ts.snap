@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '01-basic-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\01-basic-imports' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '01-basic-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\01-basic-imports' } 1`] = `
 {
   "dependencies": [
     {
@@ -96,6 +96,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '01-basic
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::sum",
         "src/index.ts::area",
@@ -122,6 +123,7 @@ export const area = PI * mul(2, 2);
       "exported": true,
       "id": "src/index.ts::area",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "area",
       "parent": "src/index.ts",
       "sourceText": "export const area = PI * mul(2, 2);",
@@ -141,6 +143,7 @@ export const area = PI * mul(2, 2);
       "exported": true,
       "id": "src/index.ts::sum",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "sum",
       "parent": "src/index.ts",
       "sourceText": "export const sum = add(2, 3);",
@@ -163,6 +166,7 @@ export const area = PI * mul(2, 2);
       "exported": true,
       "id": "src/math.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/math.ts::add",
         "src/math.ts::mul",
@@ -195,6 +199,7 @@ export function mul(a: number, b: number): number {
       "exported": true,
       "id": "src/math.ts::PI",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "PI",
       "parent": "src/math.ts",
       "sourceText": "export const PI = 3.14159;",
@@ -213,6 +218,7 @@ export function mul(a: number, b: number): number {
       "exported": true,
       "id": "src/math.ts::add",
       "kind": "function",
+      "languageId": "typescript",
       "name": "add",
       "parameters": [
         {
@@ -245,6 +251,7 @@ export function mul(a: number, b: number): number {
       "exported": true,
       "id": "src/math.ts::mul",
       "kind": "function",
+      "languageId": "typescript",
       "name": "mul",
       "parameters": [
         {
@@ -273,7 +280,7 @@ export function mul(a: number, b: number): number {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '02-type-only-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\02-type-only-imports' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '02-type-only-imports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\02-type-only-imports' } 1`] = `
 {
   "dependencies": [
     {
@@ -343,6 +350,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '02-type-
       "exported": true,
       "id": "src/consumer.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/consumer.ts::GraphConfig",
       ],
@@ -368,13 +376,15 @@ export type GraphConfig = {
       },
       "exported": true,
       "id": "src/consumer.ts::GraphConfig",
-      "kind": "type-alias",
+      "kind": "variable",
+      "languageId": "typescript",
       "name": "GraphConfig",
       "parent": "src/consumer.ts",
       "sourceText": "export type GraphConfig = {
   direction: LayoutDirection;
   selected: NodeMeta | null;
 };",
+      "subKind": "type-alias",
       "typeText": "{
   direction: LayoutDirection;
   selected: NodeMeta | null;
@@ -396,6 +406,7 @@ export type GraphConfig = {
       "exported": true,
       "id": "src/types.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/types.ts::LayoutDirection",
         "src/types.ts::NodeMeta",
@@ -422,10 +433,12 @@ export interface NodeMeta {
       },
       "exported": true,
       "id": "src/types.ts::LayoutDirection",
-      "kind": "type-alias",
+      "kind": "variable",
+      "languageId": "typescript",
       "name": "LayoutDirection",
       "parent": "src/types.ts",
       "sourceText": "export type LayoutDirection = "TB" | "LR";",
+      "subKind": "type-alias",
       "typeText": ""TB" | "LR"",
     },
     "src/types.ts::NodeMeta": {
@@ -441,7 +454,8 @@ export interface NodeMeta {
       "exported": true,
       "extends": undefined,
       "id": "src/types.ts::NodeMeta",
-      "kind": "interface",
+      "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "NodeMeta",
       "parent": "src/types.ts",
@@ -449,6 +463,7 @@ export interface NodeMeta {
   id: string;
   kind: "module" | "function";
 }",
+      "subKind": "interface",
     },
   },
   "externalModules": [],
@@ -459,7 +474,7 @@ export interface NodeMeta {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '03-reexports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\03-reexports' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '03-reexports', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\03-reexports' } 1`] = `
 {
   "dependencies": [
     {
@@ -620,6 +635,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '03-reexp
       "exported": true,
       "id": "src/barrel.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/barrel.ts::__code__",
       ],
@@ -643,6 +659,7 @@ export * from "./constants";
       "exported": false,
       "id": "src/barrel.ts::__code__",
       "kind": "code-block",
+      "languageId": "typescript",
       "name": "__code__",
       "parent": "src/barrel.ts",
     },
@@ -661,6 +678,7 @@ export * from "./constants";
       "exported": true,
       "id": "src/constants.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/constants.ts::VERSION",
       ],
@@ -683,6 +701,7 @@ export * from "./constants";
       "exported": true,
       "id": "src/constants.ts::VERSION",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "VERSION",
       "parent": "src/constants.ts",
       "sourceText": "export const VERSION = "1.0.0";",
@@ -704,6 +723,7 @@ export * from "./constants";
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::user",
         "src/index.ts::text",
@@ -731,6 +751,7 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
       "exported": true,
       "id": "src/index.ts::text",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "text",
       "parent": "src/index.ts",
       "sourceText": "export const text = \`\${VERSION}:\${formatUser(user)}\`;",
@@ -750,6 +771,7 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
       "exported": false,
       "id": "src/index.ts::user",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "user",
       "parent": "src/index.ts",
       "sourceText": "const user: User = { id: "u1", name: "Ada" };",
@@ -770,6 +792,7 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
       "exported": true,
       "id": "src/models.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/models.ts::User",
       ],
@@ -794,7 +817,8 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
       "exported": true,
       "extends": undefined,
       "id": "src/models.ts::User",
-      "kind": "interface",
+      "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "User",
       "parent": "src/models.ts",
@@ -802,6 +826,7 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
   id: string;
   name: string;
 }",
+      "subKind": "interface",
     },
     "src/utils.ts": {
       "canExplode": true,
@@ -818,6 +843,7 @@ export const text = \`\${VERSION}:\${formatUser(user)}\`;
       "exported": true,
       "id": "src/utils.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/utils.ts::formatUser",
       ],
@@ -843,6 +869,7 @@ export function formatUser(user: User): string {
       "exported": true,
       "id": "src/utils.ts::formatUser",
       "kind": "function",
+      "languageId": "typescript",
       "name": "formatUser",
       "parameters": [
         {
@@ -869,7 +896,7 @@ export function formatUser(user: User): string {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '04-import-equals', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\04-import-equals' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '04-import-equals', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\04-import-equals' } 1`] = `
 {
   "dependencies": [
     {
@@ -914,6 +941,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '04-impor
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::output",
       ],
@@ -938,6 +966,7 @@ export const output = legacyApi.oldFn("hello");
       "exported": true,
       "id": "src/index.ts::output",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "output",
       "parent": "src/index.ts",
       "sourceText": "export const output = legacyApi.oldFn("hello");",
@@ -956,6 +985,7 @@ export const output = legacyApi.oldFn("hello");
       "exported": true,
       "id": "src/legacy.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [],
       "name": "legacy.ts",
       "parent": null,
@@ -977,7 +1007,7 @@ export = legacyApi;
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '05-commonjs-require', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\05-commonjs-require' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '05-commonjs-require', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\05-commonjs-require' } 1`] = `
 {
   "dependencies": [
     {
@@ -1094,6 +1124,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '05-commo
       "exported": true,
       "id": "src/helpers.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/helpers.ts::twice",
         "src/helpers.ts::label",
@@ -1121,6 +1152,7 @@ export function twice(n: number): number {
       "exported": true,
       "id": "src/helpers.ts::label",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "label",
       "parent": "src/helpers.ts",
       "sourceText": "export const label = "helper";",
@@ -1139,6 +1171,7 @@ export function twice(n: number): number {
       "exported": true,
       "id": "src/helpers.ts::twice",
       "kind": "function",
+      "languageId": "typescript",
       "name": "twice",
       "parameters": [
         {
@@ -1171,6 +1204,7 @@ export function twice(n: number): number {
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::helpers",
         "src/index.ts::{ twice }",
@@ -1202,6 +1236,7 @@ export const b = twice(21);
       "exported": true,
       "id": "src/index.ts::a",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "a",
       "parent": "src/index.ts",
       "sourceText": "export const a = helpers.label;",
@@ -1221,6 +1256,7 @@ export const b = twice(21);
       "exported": true,
       "id": "src/index.ts::b",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "b",
       "parent": "src/index.ts",
       "sourceText": "export const b = twice(21);",
@@ -1240,6 +1276,7 @@ export const b = twice(21);
       "exported": false,
       "id": "src/index.ts::helpers",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "helpers",
       "parent": "src/index.ts",
       "sourceText": "const helpers = require("./helpers");",
@@ -1259,6 +1296,7 @@ export const b = twice(21);
       "exported": false,
       "id": "src/index.ts::{ twice }",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "{ twice }",
       "parent": "src/index.ts",
       "sourceText": "const { twice } = require("./helpers");",
@@ -1273,7 +1311,7 @@ export const b = twice(21);
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '06-dynamic-import', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\06-dynamic-import' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '06-dynamic-import', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\06-dynamic-import' } 1`] = `
 {
   "dependencies": [
     {
@@ -1351,6 +1389,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '06-dynam
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::boot",
         "src/index.ts::__code__",
@@ -1378,6 +1417,7 @@ void import("./plugin");
       "exported": false,
       "id": "src/index.ts::__code__",
       "kind": "code-block",
+      "languageId": "typescript",
       "name": "__code__",
       "parent": "src/index.ts",
     },
@@ -1394,6 +1434,7 @@ void import("./plugin");
       "exported": true,
       "id": "src/index.ts::boot",
       "kind": "function",
+      "languageId": "typescript",
       "name": "boot",
       "parameters": [],
       "parent": "src/index.ts",
@@ -1419,6 +1460,7 @@ void import("./plugin");
       "exported": true,
       "id": "src/plugin.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/plugin.ts::runPlugin",
         "src/plugin.ts::pluginName",
@@ -1446,6 +1488,7 @@ export const pluginName = "sample-plugin";
       "exported": true,
       "id": "src/plugin.ts::pluginName",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "pluginName",
       "parent": "src/plugin.ts",
       "sourceText": "export const pluginName = "sample-plugin";",
@@ -1464,6 +1507,7 @@ export const pluginName = "sample-plugin";
       "exported": true,
       "id": "src/plugin.ts::runPlugin",
       "kind": "function",
+      "languageId": "typescript",
       "name": "runPlugin",
       "parameters": [],
       "parent": "src/plugin.ts",
@@ -1481,7 +1525,7 @@ export const pluginName = "sample-plugin";
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '07-class-hierarchy', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\07-class-hierarchy' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '07-class-hierarchy', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\07-class-hierarchy' } 1`] = `
 {
   "dependencies": [
     {
@@ -1577,6 +1621,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '07-class
       "exported": true,
       "id": "src/contracts.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/contracts.ts::BaseEntity",
         "src/contracts.ts::Persistable",
@@ -1607,6 +1652,7 @@ export class BaseEntity {
       "id": "src/contracts.ts::BaseEntity",
       "implements": undefined,
       "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "BaseEntity",
       "parent": "src/contracts.ts",
@@ -1627,13 +1673,15 @@ export class BaseEntity {
       "exported": true,
       "extends": undefined,
       "id": "src/contracts.ts::Persistable",
-      "kind": "interface",
+      "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "Persistable",
       "parent": "src/contracts.ts",
       "sourceText": "export interface Persistable {
   save(): string;
 }",
+      "subKind": "interface",
     },
     "src/index.ts": {
       "canExplode": true,
@@ -1650,6 +1698,7 @@ export class BaseEntity {
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::serialized",
       ],
@@ -1674,6 +1723,7 @@ export const serialized = new User("u-1", "Lin").save();
       "exported": true,
       "id": "src/index.ts::serialized",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "serialized",
       "parent": "src/index.ts",
       "sourceText": "export const serialized = new User("u-1", "Lin").save();",
@@ -1694,6 +1744,7 @@ export const serialized = new User("u-1", "Lin").save();
       "exported": true,
       "id": "src/user.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/user.ts::User",
       ],
@@ -1738,6 +1789,7 @@ export class User extends BaseEntity implements Persistable {
         },
       ],
       "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "User",
       "parent": "src/user.ts",
@@ -1764,7 +1816,7 @@ export class User extends BaseEntity implements Persistable {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '08-enum-and-variables', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\08-enum-and-variables' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '08-enum-and-variables', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\08-enum-and-variables' } 1`] = `
 {
   "dependencies": [
     {
@@ -1879,6 +1931,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '08-enum-
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::next",
       ],
@@ -1906,6 +1959,7 @@ export const next = (): TaskState => {
       "exported": true,
       "id": "src/index.ts::next",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "next",
       "parent": "src/index.ts",
       "sourceText": "export const next = (): TaskState => {
@@ -1932,6 +1986,7 @@ export const next = (): TaskState => {
       "exported": true,
       "id": "src/status.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/status.ts::bumpAttempts",
         "src/status.ts::TaskState",
@@ -1969,6 +2024,7 @@ export function bumpAttempts(): number {
       "exported": true,
       "id": "src/status.ts::RETRY_LIMIT",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "RETRY_LIMIT",
       "parent": "src/status.ts",
       "sourceText": "export const RETRY_LIMIT = 3;",
@@ -1986,7 +2042,8 @@ export function bumpAttempts(): number {
       },
       "exported": true,
       "id": "src/status.ts::TaskState",
-      "kind": "enum",
+      "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "TaskState",
       "parent": "src/status.ts",
@@ -1995,6 +2052,7 @@ export function bumpAttempts(): number {
   Doing = "doing",
   Done = "done",
 }",
+      "subKind": "enum",
     },
     "src/status.ts::attempts": {
       "canExplode": false,
@@ -2010,6 +2068,7 @@ export function bumpAttempts(): number {
       "exported": true,
       "id": "src/status.ts::attempts",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "attempts",
       "parent": "src/status.ts",
       "sourceText": "export let attempts = 0;",
@@ -2028,6 +2087,7 @@ export function bumpAttempts(): number {
       "exported": true,
       "id": "src/status.ts::bumpAttempts",
       "kind": "function",
+      "languageId": "typescript",
       "name": "bumpAttempts",
       "parameters": [],
       "parent": "src/status.ts",
@@ -2046,7 +2106,7 @@ export function bumpAttempts(): number {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '09-top-level-code-block', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\09-top-level-code-block' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '09-top-level-code-block', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\09-top-level-code-block' } 1`] = `
 {
   "dependencies": [
     {
@@ -2119,6 +2179,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '09-top-l
       "exported": true,
       "id": "src/bootstrap.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/bootstrap.ts::__code__",
       ],
@@ -2148,6 +2209,7 @@ for (let i = 0; i < 1; i += 1) {
       "exported": false,
       "id": "src/bootstrap.ts::__code__",
       "kind": "code-block",
+      "languageId": "typescript",
       "name": "__code__",
       "parent": "src/bootstrap.ts",
     },
@@ -2167,6 +2229,7 @@ for (let i = 0; i < 1; i += 1) {
       "exported": true,
       "id": "src/effects.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/effects.ts::logStartup",
         "src/effects.ts::flag",
@@ -2194,6 +2257,7 @@ export const flag = true;
       "exported": true,
       "id": "src/effects.ts::flag",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "flag",
       "parent": "src/effects.ts",
       "sourceText": "export const flag = true;",
@@ -2212,6 +2276,7 @@ export const flag = true;
       "exported": true,
       "id": "src/effects.ts::logStartup",
       "kind": "function",
+      "languageId": "typescript",
       "name": "logStartup",
       "parameters": [
         {
@@ -2241,6 +2306,7 @@ export const flag = true;
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::ready",
       ],
@@ -2266,6 +2332,7 @@ export const ready = flag;
       "exported": true,
       "id": "src/index.ts::ready",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "ready",
       "parent": "src/index.ts",
       "sourceText": "export const ready = flag;",
@@ -2281,7 +2348,7 @@ export const ready = flag;
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '10-namespace-and-barrel', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\10-namespace-and-barrel' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '10-namespace-and-barrel', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\10-namespace-and-barrel' } 1`] = `
 {
   "dependencies": [
     {
@@ -2418,6 +2485,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '10-names
       "exported": true,
       "id": "src/barrel.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/barrel.ts::__code__",
       ],
@@ -2440,6 +2508,7 @@ export * as Str from "./strings";
       "exported": false,
       "id": "src/barrel.ts::__code__",
       "kind": "code-block",
+      "languageId": "typescript",
       "name": "__code__",
       "parent": "src/barrel.ts",
     },
@@ -2460,6 +2529,7 @@ export * as Str from "./strings";
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::total",
         "src/index.ts::mean",
@@ -2488,6 +2558,7 @@ export const loud = Kit.Str.upper("ok");
       "exported": true,
       "id": "src/index.ts::loud",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "loud",
       "parent": "src/index.ts",
       "sourceText": "export const loud = Kit.Str.upper("ok");",
@@ -2507,6 +2578,7 @@ export const loud = Kit.Str.upper("ok");
       "exported": true,
       "id": "src/index.ts::mean",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "mean",
       "parent": "src/index.ts",
       "sourceText": "export const mean = Kit.avg([1, 2, 3]);",
@@ -2526,6 +2598,7 @@ export const loud = Kit.Str.upper("ok");
       "exported": true,
       "id": "src/index.ts::total",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "total",
       "parent": "src/index.ts",
       "sourceText": "export const total = Kit.sum([1, 2, 3]);",
@@ -2547,6 +2620,7 @@ export const loud = Kit.Str.upper("ok");
       "exported": true,
       "id": "src/math.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/math.ts::sum",
         "src/math.ts::avg",
@@ -2575,6 +2649,7 @@ export function avg(values: number[]): number {
       "exported": true,
       "id": "src/math.ts::avg",
       "kind": "function",
+      "languageId": "typescript",
       "name": "avg",
       "parameters": [
         {
@@ -2602,6 +2677,7 @@ export function avg(values: number[]): number {
       "exported": true,
       "id": "src/math.ts::sum",
       "kind": "function",
+      "languageId": "typescript",
       "name": "sum",
       "parameters": [
         {
@@ -2631,6 +2707,7 @@ export function avg(values: number[]): number {
       "exported": true,
       "id": "src/strings.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/strings.ts::upper",
       ],
@@ -2653,6 +2730,7 @@ export function avg(values: number[]): number {
       "exported": true,
       "id": "src/strings.ts::upper",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "upper",
       "parent": "src/strings.ts",
       "sourceText": "export const upper = (value: string): string => value.toUpperCase();",
@@ -2669,7 +2747,7 @@ export function avg(values: number[]): number {
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '11-path-aliases', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\11-path-aliases' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '11-path-aliases', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\11-path-aliases' } 1`] = `
 {
   "dependencies": [
     {
@@ -2739,6 +2817,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '11-path-
       "exported": true,
       "id": "src/core/service.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/core/service.ts::toLabel",
       ],
@@ -2764,6 +2843,7 @@ export function toLabel(entity: Entity): string {
       "exported": true,
       "id": "src/core/service.ts::toLabel",
       "kind": "function",
+      "languageId": "typescript",
       "name": "toLabel",
       "parameters": [
         {
@@ -2794,6 +2874,7 @@ export function toLabel(entity: Entity): string {
       "exported": true,
       "id": "src/core/types.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/core/types.ts::EntityId",
         "src/core/types.ts::Entity",
@@ -2820,13 +2901,15 @@ export interface Entity {
       "exported": true,
       "extends": undefined,
       "id": "src/core/types.ts::Entity",
-      "kind": "interface",
+      "kind": "class",
+      "languageId": "typescript",
       "members": [],
       "name": "Entity",
       "parent": "src/core/types.ts",
       "sourceText": "export interface Entity {
   id: EntityId;
 }",
+      "subKind": "interface",
     },
     "src/core/types.ts::EntityId": {
       "canExplode": false,
@@ -2840,10 +2923,12 @@ export interface Entity {
       },
       "exported": true,
       "id": "src/core/types.ts::EntityId",
-      "kind": "type-alias",
+      "kind": "variable",
+      "languageId": "typescript",
       "name": "EntityId",
       "parent": "src/core/types.ts",
       "sourceText": "export type EntityId = string;",
+      "subKind": "type-alias",
       "typeText": "string",
     },
     "src/index.ts": {
@@ -2861,6 +2946,7 @@ export interface Entity {
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::sample",
       ],
@@ -2885,6 +2971,7 @@ export const sample = toLabel({ id: "e-1" });
       "exported": true,
       "id": "src/index.ts::sample",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "sample",
       "parent": "src/index.ts",
       "sourceText": "export const sample = toLabel({ id: "e-1" });",
@@ -2900,7 +2987,7 @@ export const sample = toLabel({ id: "e-1" });
 }
 `;
 
-exports[`ParsingEngine > matches normalized graph snapshot for { name: '12-circular-modules', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\12-circular-modules' } 1`] = `
+exports[`TypeScriptParsingEngine > matches normalized graph snapshot for { name: '12-circular-modules', root: 'M:\\Projects\\code-pickaxe\\examples\\projects\\12-circular-modules' } 1`] = `
 {
   "dependencies": [
     {
@@ -3020,6 +3107,7 @@ exports[`ParsingEngine > matches normalized graph snapshot for { name: '12-circu
       "exported": true,
       "id": "src/a.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/a.ts::aName",
       ],
@@ -3044,6 +3132,7 @@ export const aName = \`A->\${bName}\`;
       "exported": true,
       "id": "src/a.ts::aName",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "aName",
       "parent": "src/a.ts",
       "sourceText": "export const aName = \`A->\${bName}\`;",
@@ -3064,6 +3153,7 @@ export const aName = \`A->\${bName}\`;
       "exported": true,
       "id": "src/b.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/b.ts::bName",
       ],
@@ -3088,6 +3178,7 @@ export const bName = \`B->\${aName}\`;
       "exported": true,
       "id": "src/b.ts::bName",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "bName",
       "parent": "src/b.ts",
       "sourceText": "export const bName = \`B->\${aName}\`;",
@@ -3108,6 +3199,7 @@ export const bName = \`B->\${aName}\`;
       "exported": true,
       "id": "src/index.ts",
       "kind": "module",
+      "languageId": "typescript",
       "members": [
         "src/index.ts::both",
       ],
@@ -3133,6 +3225,7 @@ export const both = \`\${aName}|\${bName}\`;
       "exported": true,
       "id": "src/index.ts::both",
       "kind": "variable",
+      "languageId": "typescript",
       "name": "both",
       "parent": "src/index.ts",
       "sourceText": "export const both = \`\${aName}|\${bName}\`;",

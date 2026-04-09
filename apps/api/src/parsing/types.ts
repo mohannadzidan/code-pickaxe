@@ -1,14 +1,13 @@
-export type CodeEntityKind =
+export type CanonicalEntityKind =
   | 'module'
   | 'class'
   | 'function'
-  | 'type-alias'
-  | 'interface'
-  | 'enum'
   | 'variable'
   | 'code-block'
   | 'method'
   | 'property';
+
+export type CodeEntityKind = CanonicalEntityKind;
 
 export type EntityId = string;
 
@@ -23,6 +22,8 @@ export interface CodeDefinition {
 export interface CodeEntity {
   id: EntityId;
   kind: CodeEntityKind;
+  subKind?: string;
+  languageId?: string;
   name: string;
   definition: CodeDefinition;
   exported: boolean;
@@ -52,18 +53,21 @@ export interface CodeFunction extends CodeEntity {
 }
 
 export interface CodeTypeAlias extends CodeEntity {
-  kind: 'type-alias';
+  kind: 'variable';
+  subKind: 'type-alias';
   typeText: string;
 }
 
 export interface CodeInterface extends CodeEntity {
-  kind: 'interface';
+  kind: 'class';
+  subKind: 'interface';
   members: EntityId[];
   extends?: SymbolReference[];
 }
 
 export interface CodeEnum extends CodeEntity {
-  kind: 'enum';
+  kind: 'class';
+  subKind: 'enum';
   members: string[];
 }
 

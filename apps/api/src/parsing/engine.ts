@@ -34,7 +34,9 @@ import type {
   UsageContext,
   ExternalModule,
   CodeDefinition,
+  SerializedCodeGraph,
 } from './types.js';
+import type { ParsingEngine as ParsingEngineContract } from './contracts.js';
 
 const NODE_BUILTINS = new Set([
   'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console',
@@ -65,11 +67,22 @@ function getCodeDef(node: Node): CodeDefinition {
   };
 }
 
-export class ParsingEngine {
+export class TypeScriptParsingEngine implements ParsingEngineContract {
+  readonly languageId = 'typescript';
   private readonly compilerOptionsCache = new Map<string, ts.CompilerOptions>();
   private readonly nearestTsConfigCache = new Map<string, string | null>();
 
-  async parse(rootDir: string, options?: ParseOptions): Promise<CodeGraph> {
+  async parse(projectPath: string, options?: ParseOptions): Promise<SerializedCodeGraph> {
+    const graph = await this.parseCodeGraph(projectPath, options);
+    return {
+      entities: Object.fromEntries(graph.entities),
+      dependencies: graph.dependencies,
+      modules: graph.modules,
+      externalModules: graph.externalModules,
+    };
+  }
+
+  private async parseCodeGraph(rootDir: string, options?: ParseOptions): Promise<CodeGraph> {
     const absRootDir = normalizePath(path.resolve(rootDir));
     this.compilerOptionsCache.clear();
     this.nearestTsConfigCache.clear();
@@ -197,6 +210,7 @@ export class ParsingEngine {
           const cb: CodeBlock = {
             id: codeBlockId,
             kind: 'code-block',
+            languageId: this.languageId,
             name: '__code__',
             definition: getCodeDef(sf),
             exported: false,
@@ -323,6 +337,7 @@ export class ParsingEngine {
     return {
       id: moduleId,
       kind: 'module',
+      languageId: this.languageId,
       name: path.basename(sf.getFilePath()),
       definition: getCodeDef(sf),
       exported: true,
@@ -356,6 +371,7 @@ export class ParsingEngine {
       const classEntity: CodeClass = {
         id: classId,
         kind: 'class',
+        languageId: this.languageId,
         name,
         definition: getCodeDef(cls),
         exported: cls.isExported(),
@@ -380,6 +396,7 @@ export class ParsingEngine {
         const methodEntity: CodeMethod = {
           id: methodId,
           kind: 'method',
+          languageId: this.languageId,
           name: mName,
           definition: getCodeDef(method),
           exported: false,
@@ -405,6 +422,7 @@ export class ParsingEngine {
         const propEntity: CodeProperty = {
           id: propId,
           kind: 'property',
+          languageId: this.languageId,
           name: pName,
           definition: getCodeDef(prop),
           exported: false,
@@ -430,6 +448,7 @@ export class ParsingEngine {
       const fnEntity: CodeFunction = {
         id: fnId,
         kind: 'function',
+        languageId: this.languageId,
         name,
         definition: getCodeDef(fn),
         exported: fn.isExported(),
@@ -451,7 +470,9 @@ export class ParsingEngine {
       const taId = `${moduleId}::${name}` as EntityId;
       const taEntity: CodeTypeAlias = {
         id: taId,
-        kind: 'type-alias',
+        kind: 'variable',
+        subKind: 'type-alias',
+        languageId: this.languageId,
         name,
         definition: getCodeDef(ta),
         exported: ta.isExported(),
@@ -476,7 +497,9 @@ export class ParsingEngine {
       }));
       const ifaceEntity: CodeInterface = {
         id: ifaceId,
-        kind: 'interface',
+        kind: 'class',
+        subKind: 'interface',
+        languageId: this.languageId,
         name,
         definition: getCodeDef(iface),
         exported: iface.isExported(),
@@ -498,7 +521,9 @@ export class ParsingEngine {
       const enId = `${moduleId}::${name}` as EntityId;
       const enEntity: CodeEnum = {
         id: enId,
-        kind: 'enum',
+        kind: 'class',
+        subKind: 'enum',
+        languageId: this.languageId,
         name,
         definition: getCodeDef(en),
         exported: en.isExported(),
@@ -529,6 +554,7 @@ export class ParsingEngine {
         const varEntity: CodeVariable = {
           id: varId,
           kind: 'variable',
+          languageId: this.languageId,
           name,
           definition: getCodeDef(vd),
           exported: stmt.isExported(),
@@ -565,6 +591,7 @@ export class ParsingEngine {
       const cb: CodeBlock = {
         id: cbId,
         kind: 'code-block',
+        languageId: this.languageId,
         name: '__code__',
         definition: getCodeDef(imperativeStatements[0]),
         exported: false,
@@ -1062,16 +1089,19 @@ export class ParsingEngine {
     const name = entity.name;
     switch (entity.kind) {
       case 'class':
+        if (entity.subKind === 'interface') {
+          return sf.getInterface(name) ?? undefined;
+        }
+        if (entity.subKind === 'enum') {
+          return sf.getEnum(name) ?? undefined;
+        }
         return sf.getClass(name) ?? undefined;
       case 'function':
         return sf.getFunction(name) ?? undefined;
-      case 'type-alias':
-        return sf.getTypeAlias(name) ?? undefined;
-      case 'interface':
-        return sf.getInterface(name) ?? undefined;
-      case 'enum':
-        return sf.getEnum(name) ?? undefined;
       case 'variable': {
+        if (entity.subKind === 'type-alias') {
+          return sf.getTypeAlias(name) ?? undefined;
+        }
         for (const stmt of sf.getStatements()) {
           if (!Node.isVariableStatement(stmt)) continue;
           const found = stmt.getDeclarationList().getDeclarations().find(d => d.getName() === name);
@@ -1130,3 +1160,5 @@ export class ParsingEngine {
     return specifier.split('/')[0];
   }
 }
+
+export { TypeScriptParsingEngine as ParsingEngine };

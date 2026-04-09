@@ -40,6 +40,7 @@ export class GraphProjectionService {
         id,
         label: displayName,
         kind: entity.kind,
+        subKind: entity.subKind,
         filePath: entity.kind === "module" ? entity.id : displayName,
       };
     });

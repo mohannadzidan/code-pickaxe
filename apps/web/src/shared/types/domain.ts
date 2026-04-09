@@ -6,6 +6,7 @@ export type DomainNode = {
   id: EntityId;
   label: string;
   kind: string;
+  subKind?: string;
   filePath: string;
   isExternal?: boolean;
 };

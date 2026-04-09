@@ -1,19 +1,31 @@
+import { z } from 'zod';
 import { publicProcedure, router } from '@api/trpc';
-import { ParsingEngine } from '@api/parsing/engine';
+import { createDefaultEngineRegistry } from '@api/parsing/registry';
 import path from 'path';
 
-const directory = path.join(process.cwd(), '../web/src');
+const defaultProjectPath = path.join(process.cwd(), '../web');
+const defaultLanguageId = 'typescript';
 
-const engine = new ParsingEngine();
+const registry = createDefaultEngineRegistry();
+
+const graphGetSchema = z.object({
+  projectPath: z.string().min(1).optional(),
+  languageId: z.string().min(1).optional(),
+}).optional();
 
 export const codeRouter = router({
-  get: publicProcedure.query(async () => {
-    const graph = await engine.parse(directory);
-    return {
-      entities: Object.fromEntries(graph.entities),
-      dependencies: graph.dependencies,
-      modules: graph.modules,
-      externalModules: graph.externalModules,
-    };
+  get: publicProcedure.input(graphGetSchema).query(async ({ input }) => {
+    const languageId = input?.languageId ?? defaultLanguageId;
+    const projectPath = input?.projectPath ? path.resolve(input.projectPath) : defaultProjectPath;
+
+    const engine = registry.get(languageId);
+    if (!engine) {
+      throw new Error(
+        `Unsupported language '${languageId}'. Available languages: ${registry.availableLanguages().join(', ') || 'none'}`
+      );
+    }
+
+    return engine.parse(projectPath);
   }),
+  languages: publicProcedure.query(async () => registry.availableLanguages()),
 });

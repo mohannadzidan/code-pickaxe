@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
-import { ParsingEngine } from './engine.js';
+import { TypeScriptParsingEngine } from './engine.js';
 import type { CodeDefinition, CodeEntity, Dependency, SerializedCodeGraph } from './types.js';
 
 function normalizePath(p: string): string {
@@ -80,15 +80,6 @@ function normalizeGraph(graph: SerializedCodeGraph, fixtureRoot: string): Serial
   };
 }
 
-function serializeGraph(graph: Awaited<ReturnType<ParsingEngine['parse']>>): SerializedCodeGraph {
-  return {
-    entities: Object.fromEntries(graph.entities.entries()),
-    dependencies: graph.dependencies,
-    modules: graph.modules,
-    externalModules: graph.externalModules,
-  };
-}
-
 function getFixtureRoots(): Array<{ name: string; root: string }> {
   const examplesRoot = path.resolve(process.cwd(), '../../examples/projects');
   const fixtures = fs
@@ -100,7 +91,7 @@ function getFixtureRoots(): Array<{ name: string; root: string }> {
   return fixtures;
 }
 
-describe('ParsingEngine', () => {
+describe('TypeScriptParsingEngine', () => {
   const fixtures = getFixtureRoots();
 
   it('discovers all example fixtures', () => {
@@ -108,39 +99,39 @@ describe('ParsingEngine', () => {
   });
 
   it.each(fixtures)('produces a structurally valid graph for %s', async ({ name, root }) => {
-    const engine = new ParsingEngine();
+    const engine = new TypeScriptParsingEngine();
     const graph = await engine.parse(root);
 
     expect(graph.modules.length).toBeGreaterThan(0);
-    expect(graph.entities.size).toBeGreaterThan(0);
+    expect(Object.keys(graph.entities).length).toBeGreaterThan(0);
 
     for (const moduleId of graph.modules) {
-      const moduleEntity = graph.entities.get(moduleId);
+      const moduleEntity = graph.entities[moduleId];
       expect(moduleEntity?.kind, `${name}: module kind for ${moduleId}`).toBe('module');
     }
 
-    for (const [entityId, entity] of graph.entities.entries()) {
+    for (const [entityId, entity] of Object.entries(graph.entities)) {
       if (entity.parent) {
-        expect(graph.entities.has(entity.parent), `${name}: missing parent for ${entityId}`).toBe(true);
+        expect(Boolean(graph.entities[entity.parent]), `${name}: missing parent for ${entityId}`).toBe(true);
       }
 
       if ('members' in entity) {
         for (const memberId of (entity as { members: string[] }).members) {
-          const member = graph.entities.get(memberId);
+          const member = graph.entities[memberId];
           expect(member, `${name}: missing member ${memberId}`).toBeDefined();
           expect(member?.parent, `${name}: wrong parent on member ${memberId}`).toBe(entity.id);
         }
       }
 
       for (const childId of entity.children) {
-        const child = graph.entities.get(childId);
+        const child = graph.entities[childId];
         expect(child, `${name}: missing child ${childId}`).toBeDefined();
         expect(child?.parent, `${name}: wrong parent on ${childId}`).toBe(entity.id);
       }
     }
 
     for (const dep of graph.dependencies) {
-      expect(graph.entities.has(dep.source), `${name}: dangling dependency source ${dep.source}`).toBe(true);
+      expect(Boolean(graph.entities[dep.source]), `${name}: dangling dependency source ${dep.source}`).toBe(true);
 
       if (dep.importedSymbol.isDefault && !dep.importedSymbol.isNamespace) {
         expect(dep.importedSymbol.symbolName, `${name}: default import should use canonical symbolName`).toBe('default');
@@ -153,15 +144,15 @@ describe('ParsingEngine', () => {
           `${name}: missing external module ${specifier}`
         ).toBe(true);
       } else {
-        expect(graph.entities.has(dep.target), `${name}: dangling dependency target ${dep.target}`).toBe(true);
+        expect(Boolean(graph.entities[dep.target]), `${name}: dangling dependency target ${dep.target}`).toBe(true);
       }
     }
   });
 
   it.each(fixtures)('matches normalized graph snapshot for %s', async ({ root }) => {
-    const engine = new ParsingEngine();
+    const engine = new TypeScriptParsingEngine();
     const graph = await engine.parse(root);
-    const normalized = normalizeGraph(serializeGraph(graph), root);
+    const normalized = normalizeGraph(graph, root);
 
     expect(normalized).toMatchSnapshot();
   });

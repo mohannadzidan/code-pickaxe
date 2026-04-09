@@ -74,6 +74,7 @@ function LayoutFlow() {
       id: node.id,
       label: node.label,
       kind: node.kind,
+      subKind: node.subKind,
       filePath: node.filePath,
       isExternal: node.isExternal,
       isSelected: node.id === selectedEntityId,
