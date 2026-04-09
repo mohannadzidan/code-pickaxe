@@ -47,32 +47,23 @@ export default function FileNode({ id, data }: NodeProps) {
         e.stopPropagation();
         d.onSelectNode(id);
       }}
+      className={`w-full rounded-lg overflow-hidden cursor-pointer font-sans transition-colors duration-100 ease-in-out`}
       style={{
         background: d.isExternal ? `${color}0d` : "#ffffff",
-        borderRadius: 8,
-        border: `1.5px ${d.isExternal ? "dashed" : "solid"} ${isSelected ? color : d.isExternal ? color + "55" : "#e2e8f0"}`,
-        fontFamily: "Inter, system-ui, sans-serif",
-        width: "100%",
+        borderWidth: "1.5px",
+        borderStyle: d.isExternal ? "dashed" : "solid",
+        borderColor: isSelected ? color : d.isExternal ? color + "55" : "#e2e8f0",
         boxShadow: isSelected
           ? `0 0 0 2px ${color}44, 0 2px 10px rgba(0,0,0,0.07)`
           : d.isExternal ? "none" : "0 2px 10px rgba(0,0,0,0.07)",
         opacity: d.isExternal ? 0.85 : 1,
-        overflow: "hidden",
-        cursor: "pointer",
-        transition: "border-color 0.12s, box-shadow 0.12s",
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: "none" }} />
+      <Handle type="target" position={Position.Top} className="opacity-0 pointer-events-none" />
       {/* Header */}
       <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          padding: "7px 10px 6px",
-          background: isSelected ? `${color}10` : "#f8fafc",
-          transition: "background 0.12s",
-        }}
+        className="flex items-center gap-[7px] pt-[7px] pr-[10px] pb-[6px] pl-[10px]"
+        style={{ background: isSelected ? `${color}10` : "#f8fafc" }}
       >
         <span
           style={{ background: color }}
@@ -81,15 +72,7 @@ export default function FileNode({ id, data }: NodeProps) {
           {badge}
         </span>
         <span
-          style={{
-            fontSize: 11,
-            color: "#334155",
-            fontWeight: 600,
-            flex: 1,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
+          className="text-[11px] text-[#334155] font-semibold flex-1 overflow-hidden truncate"
           title={d.filePath ?? d.label}
         >
           {d.filePath ?? d.label}
@@ -98,22 +81,14 @@ export default function FileNode({ id, data }: NodeProps) {
 
       {d.modulePath && d.kind !== "module" && (
         <div
-          style={{
-            padding: "0 10px 6px",
-            fontSize: 10,
-            color: "#64748b",
-            lineHeight: 1.2,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
+          className="px-[10px] pb-[6px] text-[10px] text-[#64748b] leading-[1.2] overflow-hidden truncate"
           title={d.modulePath}
         >
           {d.modulePath}
         </div>
       )}
 
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
+      <Handle type="source" position={Position.Bottom} className="opacity-0 pointer-events-none" />
     </div>
   );
 }

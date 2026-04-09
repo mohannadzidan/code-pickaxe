@@ -22,15 +22,10 @@ export default function GroupNode({ data }: NodeProps) {
 
   return (
     <div
+      className="w-full h-full rounded-[10px] relative box-border font-sans"
       style={{
-        width: "100%",
-        height: "100%",
-        borderRadius: 10,
         border: `2px solid ${color}55`,
         background: `${color}08`,
-        position: "relative",
-        boxSizing: "border-box",
-        fontFamily: "Inter, system-ui, sans-serif",
       }}
     >
       {/* Resize handle — always visible in corner */}
@@ -41,32 +36,20 @@ export default function GroupNode({ data }: NodeProps) {
         handleStyle={{ display: "none" }}
       />
 
-      <Handle type="target" position={Position.Top} style={{ opacity: 0, pointerEvents: "none" }} />
+      <Handle type="target" position={Position.Top} className="opacity-0 pointer-events-none" />
 
       {/* Label chip — top-right corner */}
       <div
-        style={{
-          position: "absolute",
-          top: 8,
-          right: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          background: `${color}22`,
-          border: `1px solid ${color}44`,
-          borderRadius: 6,
-          padding: "3px 8px",
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
+        className="absolute top-[8px] right-[10px] flex items-center gap-[5px] rounded-[6px] px-[8px] py-[3px] select-none pointer-events-none"
+        style={{ background: `${color}22`, border: `1px solid ${color}44` }}
       >
-        <span style={{ fontSize: 12 }}>{icon}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.3 }}>
+        <span className="text-[12px]">{icon}</span>
+        <span className="text-[11px] font-extrabold" style={{ color, letterSpacing: 0.3 }}>
           {d.label}
         </span>
       </div>
 
-      <Handle type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
+      <Handle type="source" position={Position.Bottom} className="opacity-0 pointer-events-none" />
     </div>
   );
 }

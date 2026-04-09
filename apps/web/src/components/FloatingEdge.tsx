@@ -84,21 +84,13 @@ export default function FloatingEdge({ id, source, target, label, data, markerEn
                   }
                 : undefined
             }
+            className="nodrag nopan absolute text-[9px] text-[#94a3b8] bg-[#0f172a] px-[6px] py-[1px] rounded-sm whitespace-nowrap select-none"
             style={{
-              position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              fontSize: 9,
-              color: '#94a3b8',
-              background: '#0f172a',
-              padding: '1px 6px',
-              borderRadius: 3,
               border: `1px solid ${firstUsageLoc ? '#334155' : '#1e293b'}`,
               pointerEvents: firstUsageLoc ? 'all' : 'none',
-              whiteSpace: 'nowrap',
               cursor: firstUsageLoc ? 'pointer' : 'default',
-              userSelect: 'none',
             }}
-            className="nodrag nopan"
             title={firstUsageLoc ? `Go to usage (line ${firstUsageLoc.line})` : undefined}
           >
             {label as string}

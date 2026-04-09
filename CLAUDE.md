@@ -57,4 +57,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Domain workflows are composed through orchestrators; shared side effects are encapsulated in services.
 - Application composition lives in bootstrap/container modules that wire long-lived service instances.
 
-when you need to explore the code, always use the use #runSubagent tool to run the `state-explorer` agent to explore the feature you are working on. This will help you understand the current implementation and how the pieces fit together before making changes. you are allowed to run up to `3` exploration subagents in parallel for faster execution. you can give each agent a task and they all will return to you with their findings. submit the tasks to them in a focused
+when you need to explore the code, always use the use #runSubagent tool to run the `state-explorer` agent to explore. you can run multiple explorers in parallel from 1 and up to 5 agents, and you MUST run them in parallel and giving each of them focused information about one thing to explore in no more than 50 words paragraph.

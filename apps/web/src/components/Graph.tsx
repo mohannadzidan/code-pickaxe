@@ -250,7 +250,6 @@ function LayoutFlow({
     simulationRef.current.reheat(0.8);
   }, []);
 
-  const menuEntity = menu && graph ? graph.entities[menu.nodeId] : null;
   const menuNode = useMemo(
     () => (menu ? visualGraph.nodes.find((node) => node.id === menu.nodeId) ?? null : null),
     [menu, visualGraph.nodes]
@@ -526,7 +525,7 @@ function LayoutFlow({
   ]);
 
   return (
-    <div ref={flowRef} style={{ width: "100%", height: "100%" }}>
+    <div ref={flowRef} className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -570,53 +569,25 @@ function LayoutButtons({ onReheat, onOpenSettings }: LayoutButtonsProps) {
   const setLayoutDirection = useGraphStore((s) => s.setLayoutDirection);
 
   return (
-    <div style={{ display: "flex", gap: 6 }}>
+    <div className="flex gap-1.5">
       <button
-        style={{
-          background: "#fff",
-          border: `1px solid ${direction === "TB" ? "#94a3b8" : "#e2e8f0"}`,
-          borderRadius: 6,
-          padding: "5px 12px",
-          cursor: "pointer",
-        }}
+        className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
+        style={{ border: `1px solid ${direction === "TB" ? "#94a3b8" : "#e2e8f0"}` }}
         onClick={() => setLayoutDirection("TB")}
       >
         Vertical Layout
       </button>
       <button
-        style={{
-          background: "#fff",
-          border: `1px solid ${direction === "LR" ? "#94a3b8" : "#e2e8f0"}`,
-          borderRadius: 6,
-          padding: "5px 12px",
-          cursor: "pointer",
-        }}
+        className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
+        style={{ border: `1px solid ${direction === "LR" ? "#94a3b8" : "#e2e8f0"}` }}
         onClick={() => setLayoutDirection("LR")}
       >
         Horizontal Layout
       </button>
-      <button
-        style={{
-          background: "#fff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 6,
-          padding: "5px 12px",
-          cursor: "pointer",
-        }}
-        onClick={onReheat}
-      >
+      <button className="rounded-md px-3 py-1.5 bg-white border border-[#e2e8f0] cursor-pointer" onClick={onReheat}>
         Reheat
       </button>
-      <button
-        style={{
-          background: "#fff",
-          border: "1px solid #e2e8f0",
-          borderRadius: 6,
-          padding: "5px 12px",
-          cursor: "pointer",
-        }}
-        onClick={onOpenSettings}
-      >
+      <button className="rounded-md px-3 py-1.5 bg-white border border-[#e2e8f0] cursor-pointer" onClick={onOpenSettings}>
         Settings
       </button>
     </div>
@@ -658,10 +629,6 @@ export default function Graph() {
     }
   }, [query.data]);
 
-  const visualGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, hiddenIds),
-    [graph, explodedIds, explodedFolderPaths, hiddenIds]
-  );
 
   const relationGraph = useMemo(
     () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, new Set<string>()),
@@ -1028,9 +995,9 @@ export default function Graph() {
   if (!query.data) return null;
 
   return (
-    <div ref={rootRef} style={{ display: "flex", width: "100vw", height: "100vh", background: "#0f172a", overflow: "hidden" }}>
+    <div ref={rootRef} className="flex w-screen h-screen bg-[#0f172a] overflow-hidden">
       <SettingsPopup open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <div style={{ width: `${explorerPaneWidth}%`, height: "100%", flexShrink: 0, minWidth: 220 }}>
+      <div style={{ width: `${explorerPaneWidth}%` }} className="h-full shrink-0 min-w-55">
         <FileExplorer
           graph={graph}
           explodedIds={explodedIds}
@@ -1050,20 +1017,8 @@ export default function Graph() {
           revealRequest={revealInExplorerRequest}
         />
       </div>
-      <div
-        onMouseDown={onExplorerDividerMouseDown}
-        style={{
-          width: 4,
-          height: "100%",
-          flexShrink: 0,
-          background: "#1e293b",
-          cursor: "col-resize",
-          transition: "background 0.1s",
-        }}
-        onMouseEnter={(event) => (event.currentTarget.style.background = "#334155")}
-        onMouseLeave={(event) => (event.currentTarget.style.background = "#1e293b")}
-      />
-      <div ref={workspaceRef} style={{ display: "flex", flex: 1, minWidth: 0, height: "100%" }}>
+      <div onMouseDown={onExplorerDividerMouseDown} className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]" />
+      <div ref={workspaceRef} className="flex flex-1 min-w-0 h-full">
         <div
           ref={graphViewportRef}
           tabIndex={0}
@@ -1076,12 +1031,10 @@ export default function Graph() {
           onKeyDown={onGraphKeyDown}
           style={{
             width: `${paneWidth}%`,
-            height: "100%",
-            flexShrink: 0,
-            background: "#f1f5f9",
             outline: isGraphViewFocused ? "2px solid #93c5fd" : "none",
             outlineOffset: -2,
           }}
+          className="h-full shrink-0 bg-[#f1f5f9]"
         >
           <ReactFlowProvider>
             <LayoutFlow
@@ -1095,20 +1048,8 @@ export default function Graph() {
             />
           </ReactFlowProvider>
         </div>
-        <div
-          onMouseDown={onDividerMouseDown}
-          style={{
-            width: 4,
-            height: "100%",
-            flexShrink: 0,
-            background: "#1e293b",
-            cursor: "col-resize",
-            transition: "background 0.1s",
-          }}
-          onMouseEnter={(event) => (event.currentTarget.style.background = "#334155")}
-          onMouseLeave={(event) => (event.currentTarget.style.background = "#1e293b")}
-        />
-        <div style={{ flex: 1, height: "100%", overflow: "hidden" }}>
+        <div onMouseDown={onDividerMouseDown} className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]" />
+        <div className="flex-1 h-full overflow-hidden">
           <CodePane />
         </div>
       </div>

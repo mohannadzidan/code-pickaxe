@@ -106,6 +106,17 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       current = state.graph.entities[current.parent];
     }
 
+    // unhide all children of the exploded entity
+
+    const stack = [entityId];
+    while (stack.length) {
+      const currentId = stack.pop()!;
+      hiddenIds.delete(currentId);
+      const entity = state.graph?.entities[currentId];
+      if (!entity) continue;
+      for (const childId of entity.children) stack.push(childId);
+    }
+
     explodedIds.add(entityId);
 
     let moduleId: string | null = null;

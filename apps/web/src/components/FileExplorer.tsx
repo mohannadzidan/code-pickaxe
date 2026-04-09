@@ -813,26 +813,12 @@ export default function FileExplorer({
             selectEntity(graphNodeId);
             onFocusInGraph(graphNodeId);
           }}
+          className="flex items-center gap-2 px-2 py-1 rounded-[6px] text-[12px] select-none transition-colors duration-200"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "5px 8px",
             paddingLeft: 4 + depth * 8,
-            borderRadius: 6,
             color: isSelected ? "#e2e8f0" : "#cbd5e1",
-            fontSize: 12,
-            fontFamily: "Inter, system-ui, sans-serif",
-            userSelect: "none",
             background: isSelected ? "#1e293b" : isFlashing ? "#334155" : "transparent",
             boxShadow: isSelected ? "inset 0 0 0 1px #334155" : "none",
-            transition: "background 0.2s, box-shadow 0.2s",
-          }}
-          onMouseEnter={(event) => {
-            if (!isSelected) event.currentTarget.style.background = "#1e293b";
-          }}
-          onMouseLeave={(event) => {
-            if (!isSelected) event.currentTarget.style.background = isFlashing ? "#334155" : "transparent";
           }}
         >
           {hasChildren ? (
@@ -841,61 +827,34 @@ export default function FileExplorer({
                 event.stopPropagation();
                 toggleExpanded(item.id);
               }}
-              style={{
-                width: 16,
-                height: 16,
-                border: "none",
-                background: "transparent",
-                color: "#94a3b8",
-                cursor: "pointer",
-                padding: 0,
-                lineHeight: "16px",
-              }}
+              className="w-4 h-4 bg-transparent border-0 p-0 leading-[16px] text-[#94a3b8] cursor-pointer"
               aria-label={isExpanded ? "Collapse" : "Expand"}
             >
               {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             </button>
           ) : (
-            <span style={{ width: 16 }} />
+            <span className="w-4" />
           )}
 
-          <span style={{ width: 14, textAlign: "center", color: "#94a3b8", display: "inline-flex", justifyContent: "center" }}>{itemIcon}</span>
+          <span className="w-[14px] text-[#94a3b8] inline-flex justify-center">{itemIcon}</span>
 
           <button
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "inherit",
-              fontSize: 12,
-              padding: 0,
-              margin: 0,
-              cursor: item.type === "entity" ? "pointer" : "default",
-              textAlign: "left",
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
+            className="border-0 bg-transparent text-inherit text-[12px] p-0 m-0 text-left flex-1 overflow-hidden truncate"
+            style={{ cursor: item.type === "entity" ? "pointer" : "default" }}
             title={item.type === "folder" ? item.path : item.entityId}
           >
             {item.name}
           </button>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
+          <div className="flex items-center gap-1 ml-auto">
             {canToggleVisibility && visibilityTargets.length > 0 && (
               <button
                 onClick={(event) => {
                   event.stopPropagation();
                   onToggleVisibility();
                 }}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: isHidden ? "#f59e0b" : "#94a3b8",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  padding: "2px 4px",
-                }}
+                className="border-0 bg-transparent text-[12px] px-1 py-[2px] cursor-pointer"
+                style={{ color: isHidden ? "#f59e0b" : "#94a3b8" }}
                 title={isHidden ? "Show in graph" : "Hide from graph"}
                 aria-label={isHidden ? "Show in graph" : "Hide from graph"}
               >
@@ -909,14 +868,8 @@ export default function FileExplorer({
                   event.stopPropagation();
                   onToggleExplode();
                 }}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: hasExploded ? "#38bdf8" : "#94a3b8",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  padding: "2px 4px",
-                }}
+                className="border-0 bg-transparent text-[12px] px-1 py-[2px] cursor-pointer"
+                style={{ color: hasExploded ? "#38bdf8" : "#94a3b8" }}
                 title={hasExploded ? "Pack in graph" : "Extract in graph"}
                 aria-label={hasExploded ? "Pack in graph" : "Extract in graph"}
               >
@@ -932,23 +885,8 @@ export default function FileExplorer({
   };
 
   return (
-    <div
-      ref={paneRef}
-      onClick={closeMenu}
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        background: "#0f172a",
-        color: "#e2e8f0",
-        borderRight: "1px solid #1e293b",
-        overflow: "auto",
-        padding: "10px 8px",
-      }}
-    >
-      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 0.7, color: "#94a3b8", padding: "0 6px 8px" }}>
-        Files Explorer
-      </div>
+    <div ref={paneRef} onClick={closeMenu} className="relative w-full h-full bg-[#0f172a] text-[#e2e8f0] border-r border-[#1e293b] overflow-auto p-[10px_8px]">
+      <div className="text-[12px] uppercase tracking-[0.7px] text-[#94a3b8] px-[6px] pb-[8px]">Files Explorer</div>
       <div>{explorerItems.map((item) => renderItem(item, 0))}</div>
       {menu && <ContextMenu {...menu} actions={menuActions} minWidth={210} onClose={closeMenu} />}
     </div>
