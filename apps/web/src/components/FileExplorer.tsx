@@ -818,7 +818,7 @@ export default function FileExplorer({
             alignItems: "center",
             gap: 8,
             padding: "5px 8px",
-            paddingLeft: 8 + depth * 16,
+            paddingLeft: 4 + depth * 8,
             borderRadius: 6,
             color: isSelected ? "#e2e8f0" : "#cbd5e1",
             fontSize: 12,
