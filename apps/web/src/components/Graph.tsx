@@ -38,6 +38,12 @@ import { loadGraph } from "@/orchestrators/loadGraph";
 import { selectEntity } from "@/orchestrators/selectEntity";
 import { navigateToEdgeSource } from "@/orchestrators/navigateToEdgeSource";
 import { fromFolderNodeId, isModuleInsideFolder } from "@/features/graph/services/folderPath";
+import {
+  selectKeyboardShortcuts,
+  shortcutMatchesKeyboardEvent,
+  useKeyboardShortcutStore,
+} from "@/shared/store/keyboardShortcutStore";
+import SettingsPopup from "./SettingsPopup";
 import { Box, Crosshair, EyeOff, PackageOpen, ScanLine, Search, Target } from "lucide-react";
 
 const nodeTypes: NodeTypes = { file: FileNode };
@@ -57,6 +63,7 @@ type LayoutFlowProps = {
   onShowDependenciesOnly: (nodeId: string) => void;
   onShowDependentsOnly: (nodeId: string) => void;
   onShowMoreRelationships: (nodeId: string) => void;
+  onOpenSettings: () => void;
   focusRequest: { nodeId: string; token: number } | null;
 };
 
@@ -94,6 +101,7 @@ function LayoutFlow({
   onShowDependenciesOnly,
   onShowDependentsOnly,
   onShowMoreRelationships,
+  onOpenSettings,
   focusRequest,
 }: LayoutFlowProps) {
   const graphData = useGraphStore(selectGraphData);
@@ -537,7 +545,7 @@ function LayoutFlow({
         <MiniMap zoomable pannable />
 
         <Panel position="top-right">
-          <LayoutButtons onReheat={onReheat} />
+          <LayoutButtons onReheat={onReheat} onOpenSettings={onOpenSettings} />
         </Panel>
 
         {menu && (
@@ -554,9 +562,10 @@ function LayoutFlow({
 
 type LayoutButtonsProps = {
   onReheat: () => void;
+  onOpenSettings: () => void;
 };
 
-function LayoutButtons({ onReheat }: LayoutButtonsProps) {
+function LayoutButtons({ onReheat, onOpenSettings }: LayoutButtonsProps) {
   const direction = useGraphStore(selectLayoutDirection);
   const setLayoutDirection = useGraphStore((s) => s.setLayoutDirection);
 
@@ -598,6 +607,18 @@ function LayoutButtons({ onReheat }: LayoutButtonsProps) {
       >
         Reheat
       </button>
+      <button
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 6,
+          padding: "5px 12px",
+          cursor: "pointer",
+        }}
+        onClick={onOpenSettings}
+      >
+        Settings
+      </button>
     </div>
   );
 }
@@ -612,6 +633,8 @@ export default function Graph() {
   const explodedIds = useGraphStore(selectExplodedIds);
   const explodedFolderPaths = useGraphStore(selectExplodedFolderPaths);
   const hiddenIds = useGraphStore(selectHiddenIds);
+  const selectedEntityId = useSelectionStore(selectSelectedEntityId);
+  const keyboardShortcuts = useKeyboardShortcutStore(selectKeyboardShortcuts);
   const explodeEntity = useGraphStore((s) => s.explodeEntity);
   const collapseEntity = useGraphStore((s) => s.collapseEntity);
   const explodeFolder = useGraphStore((s) => s.explodeFolder);
@@ -621,10 +644,13 @@ export default function Graph() {
   const applyVisibilityMask = useGraphStore((s) => s.applyVisibilityMask);
   const [revealInExplorerRequest, setRevealInExplorerRequest] = useState<{ nodeId: string; token: number } | null>(null);
   const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isGraphViewFocused, setIsGraphViewFocused] = useState(false);
   const isDraggingDivider = useRef(false);
   const isDraggingExplorerDivider = useRef(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const graphViewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (query.data) {
@@ -760,6 +786,182 @@ export default function Graph() {
     setRevealInExplorerRequest({ nodeId, token: Date.now() });
   }, []);
 
+  const showAllHiddenExceptExternals = useCallback(() => {
+    if (!graph) return;
+
+    const visibleIds = new Set<string>(Object.keys(graph.entities));
+    for (const ext of graph.externalModules) {
+      const extId = `external:${ext.moduleSpecifier}`;
+      if (!hiddenIds.has(extId)) {
+        visibleIds.add(extId);
+      }
+    }
+
+    applyVisibilityMask(visibleIds);
+  }, [applyVisibilityMask, graph, hiddenIds]);
+
+  const hideNodeById = useCallback((nodeId: string) => {
+    const folderPath = fromFolderNodeId(nodeId);
+    if (!folderPath || !graph) {
+      hideEntity(nodeId);
+      return;
+    }
+
+    for (const moduleId of graph.modules) {
+      if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+      hideEntity(moduleId);
+    }
+  }, [graph, hideEntity]);
+
+  const selectedNodeInfo = useMemo(() => {
+    if (!selectedEntityId) return null;
+
+    const folderPath = fromFolderNodeId(selectedEntityId);
+    if (folderPath) {
+      const hasChildren = Boolean(graph?.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath)));
+      return {
+        id: selectedEntityId,
+        kind: "folder" as const,
+        folderPath,
+        hasChildren,
+        isPacked: folderPath.length > 0 && !explodedFolderPaths.has(folderPath),
+      };
+    }
+
+    if (!graph) return null;
+    const entity = graph.entities[selectedEntityId];
+    if (!entity) return null;
+
+    const hasChildren = entity.children.length > 0;
+    return {
+      id: selectedEntityId,
+      kind: "entity" as const,
+      hasChildren,
+      isPacked: hasChildren ? isEntityPacked(selectedEntityId, graph, explodedIds, explodedFolderPaths) : false,
+    };
+  }, [explodedFolderPaths, explodedIds, graph, selectedEntityId]);
+
+  useEffect(() => {
+    const onWindowKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement
+        && (target.tagName === "INPUT"
+          || target.tagName === "TEXTAREA"
+          || target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(event, keyboardShortcuts.showAllHiddenExceptExternal)) {
+        event.preventDefault();
+        showAllHiddenExceptExternals();
+      }
+    };
+
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+  }, [keyboardShortcuts.showAllHiddenExceptExternal, showAllHiddenExceptExternals]);
+
+  const onGraphKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (
+      target instanceof HTMLElement
+      && (target.tagName === "INPUT"
+        || target.tagName === "TEXTAREA"
+        || target.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (!isGraphViewFocused || !selectedEntityId) return;
+
+    const nativeEvent = event.nativeEvent;
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.hideNode)) {
+      event.preventDefault();
+      hideNodeById(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showMoreRelationships)) {
+      event.preventDefault();
+      onShowMoreRelationships(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.isolateNode)) {
+      event.preventDefault();
+      onIsolate(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.revealInExplorer)) {
+      event.preventDefault();
+      onRevealInExplorer(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependenciesOnly)) {
+      event.preventDefault();
+      onShowDependenciesOnly(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependentsOnly)) {
+      event.preventDefault();
+      onShowDependentsOnly(selectedEntityId);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.unpackNode)) {
+      if (!selectedNodeInfo?.hasChildren || !selectedNodeInfo.isPacked) return;
+      event.preventDefault();
+
+      if (selectedNodeInfo.kind === "folder") {
+        explodeFolder(selectedNodeInfo.folderPath);
+        return;
+      }
+
+      explodeEntity(selectedNodeInfo.id);
+      return;
+    }
+
+    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.packNode)) {
+      if (!selectedNodeInfo?.hasChildren || selectedNodeInfo.isPacked) return;
+      event.preventDefault();
+
+      if (selectedNodeInfo.kind === "folder") {
+        collapseFolder(selectedNodeInfo.folderPath);
+        return;
+      }
+
+      collapseEntity(selectedNodeInfo.id);
+    }
+  }, [
+    isGraphViewFocused,
+    keyboardShortcuts.hideNode,
+    keyboardShortcuts.isolateNode,
+    keyboardShortcuts.packNode,
+    keyboardShortcuts.revealInExplorer,
+    keyboardShortcuts.showDependenciesOnly,
+    keyboardShortcuts.showDependentsOnly,
+    keyboardShortcuts.showMoreRelationships,
+    keyboardShortcuts.unpackNode,
+    collapseEntity,
+    collapseFolder,
+    explodeEntity,
+    explodeFolder,
+    onIsolate,
+    onRevealInExplorer,
+    onShowDependenciesOnly,
+    onShowDependentsOnly,
+    onShowMoreRelationships,
+    selectedEntityId,
+    selectedNodeInfo,
+    hideNodeById,
+  ]);
+
   const onDividerMouseDown = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -827,6 +1029,7 @@ export default function Graph() {
 
   return (
     <div ref={rootRef} style={{ display: "flex", width: "100vw", height: "100vh", background: "#0f172a", overflow: "hidden" }}>
+      <SettingsPopup open={settingsOpen} onOpenChange={setSettingsOpen} />
       <div style={{ width: `${explorerPaneWidth}%`, height: "100%", flexShrink: 0, minWidth: 220 }}>
         <FileExplorer
           graph={graph}
@@ -861,7 +1064,25 @@ export default function Graph() {
         onMouseLeave={(event) => (event.currentTarget.style.background = "#1e293b")}
       />
       <div ref={workspaceRef} style={{ display: "flex", flex: 1, minWidth: 0, height: "100%" }}>
-        <div style={{ width: `${paneWidth}%`, height: "100%", flexShrink: 0, background: "#f1f5f9" }}>
+        <div
+          ref={graphViewportRef}
+          tabIndex={0}
+          onMouseDown={() => graphViewportRef.current?.focus()}
+          onFocusCapture={() => setIsGraphViewFocused(true)}
+          onBlurCapture={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) return;
+            setIsGraphViewFocused(false);
+          }}
+          onKeyDown={onGraphKeyDown}
+          style={{
+            width: `${paneWidth}%`,
+            height: "100%",
+            flexShrink: 0,
+            background: "#f1f5f9",
+            outline: isGraphViewFocused ? "2px solid #93c5fd" : "none",
+            outlineOffset: -2,
+          }}
+        >
           <ReactFlowProvider>
             <LayoutFlow
               onRevealInExplorer={onRevealInExplorer}
@@ -869,6 +1090,7 @@ export default function Graph() {
               onShowDependenciesOnly={onShowDependenciesOnly}
               onShowDependentsOnly={onShowDependentsOnly}
               onShowMoreRelationships={onShowMoreRelationships}
+              onOpenSettings={() => setSettingsOpen(true)}
               focusRequest={focusRequest}
             />
           </ReactFlowProvider>

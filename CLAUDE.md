@@ -56,3 +56,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Frontend (`apps/web`) consumes typed API contracts and renders domain state through React + Zustand.
 - Domain workflows are composed through orchestrators; shared side effects are encapsulated in services.
 - Application composition lives in bootstrap/container modules that wire long-lived service instances.
+
+when you need to explore the code, always use the use #runSubagent tool to run the `state-explorer` agent to explore the feature you are working on. This will help you understand the current implementation and how the pieces fit together before making changes. you are allowed to run up to `3` exploration subagents in parallel for faster execution. you can give each agent a task and they all will return to you with their findings. submit the tasks to them in a focused
