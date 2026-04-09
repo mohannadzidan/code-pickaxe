@@ -8,7 +8,11 @@ export type DomainNode = {
   kind: string;
   subKind?: string;
   filePath: string;
+  modulePath?: string;
   isExternal?: boolean;
+  canExplode?: boolean;
+  parentContainerId?: string;
+  parentContainerLabel?: string;
 };
 
 export type DomainEdge = {

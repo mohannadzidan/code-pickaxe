@@ -7,6 +7,7 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   type Edge,
   type EdgeTypes,
   type Node,
@@ -18,9 +19,12 @@ import type { CodeDefinition } from "@api/parsing/types";
 import FileNode, { type FileNodeData } from "./FileNode";
 import FloatingEdge from "./FloatingEdge";
 import ContextMenu from "./ContextMenu";
+import type { ContextMenuAction } from "./ContextMenu";
 import CodePane from "./CodePane";
+import FileExplorer from "./FileExplorer";
 import {
   useGraphStore,
+  selectExplodedFolderPaths,
   selectExplodedIds,
   selectGraphData,
   selectHiddenIds,
@@ -28,11 +32,13 @@ import {
   selectNodePositions,
 } from "@/features/graph/store/graphStore";
 import { selectSelectedEntityId, useSelectionStore } from "@/features/selection/store/selectionStore";
-import { selectPaneWidth, useUiStore } from "@/shared/store/uiStore";
+import { selectExplorerPaneWidth, selectPaneWidth, useUiStore } from "@/shared/store/uiStore";
 import { services } from "@/app/bootstrap";
 import { loadGraph } from "@/orchestrators/loadGraph";
 import { selectEntity } from "@/orchestrators/selectEntity";
 import { navigateToEdgeSource } from "@/orchestrators/navigateToEdgeSource";
+import { fromFolderNodeId, isModuleInsideFolder } from "@/features/graph/services/folderPath";
+import { Box, Crosshair, EyeOff, PackageOpen, ScanLine, Search, Target } from "lucide-react";
 
 const nodeTypes: NodeTypes = { file: FileNode };
 const edgeTypes: EdgeTypes = { floating: FloatingEdge };
@@ -45,21 +51,73 @@ type MenuState = {
   bottom: number | false;
 };
 
-function LayoutFlow() {
+type LayoutFlowProps = {
+  onRevealInExplorer: (nodeId: string) => void;
+  onIsolate: (nodeId: string) => void;
+  onShowDependenciesOnly: (nodeId: string) => void;
+  onShowDependentsOnly: (nodeId: string) => void;
+  onShowMoreRelationships: (nodeId: string) => void;
+  focusRequest: { nodeId: string; token: number } | null;
+};
+
+const isEntityPacked = (
+  entityId: string,
+  graph: NonNullable<ReturnType<typeof selectGraphData>>,
+  explodedIds: Set<string>,
+  explodedFolderPaths: Set<string>
+): boolean => {
+  const entity = graph.entities[entityId];
+  if (entity?.children.length && !explodedIds.has(entityId)) return true;
+
+  let current = graph.entities[entityId];
+
+  while (current?.parent) {
+    if (!explodedIds.has(current.parent)) return true;
+    current = graph.entities[current.parent];
+  }
+
+  const moduleId = current?.id ?? entityId;
+  const moduleFolderPath = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
+  let cursor = moduleFolderPath;
+  while (cursor) {
+    if (!explodedFolderPaths.has(cursor)) return true;
+    const idx = cursor.lastIndexOf("/");
+    cursor = idx >= 0 ? cursor.slice(0, idx) : "";
+  }
+
+  return false;
+};
+
+function LayoutFlow({
+  onRevealInExplorer,
+  onIsolate,
+  onShowDependenciesOnly,
+  onShowDependentsOnly,
+  onShowMoreRelationships,
+  focusRequest,
+}: LayoutFlowProps) {
   const graphData = useGraphStore(selectGraphData);
   const hiddenIds = useGraphStore(selectHiddenIds);
   const explodedIds = useGraphStore(selectExplodedIds);
+  const explodedFolderPaths = useGraphStore(selectExplodedFolderPaths);
   const visualGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graphData, explodedIds, hiddenIds),
-    [graphData, explodedIds, hiddenIds]
+    () => services.graphProjectionService.buildVisualGraph(graphData, explodedIds, explodedFolderPaths, hiddenIds),
+    [graphData, explodedIds, explodedFolderPaths, hiddenIds]
+  );
+  const relationVisualGraph = useMemo(
+    () => services.graphProjectionService.buildVisualGraph(graphData, explodedIds, explodedFolderPaths, new Set<string>()),
+    [graphData, explodedIds, explodedFolderPaths]
   );
   const positions = useGraphStore(selectNodePositions);
   const selectedEntityId = useSelectionStore(selectSelectedEntityId);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
+  const reactFlow = useReactFlow();
 
   const explodeEntity = useGraphStore((s) => s.explodeEntity);
   const collapseEntity = useGraphStore((s) => s.collapseEntity);
+  const explodeFolder = useGraphStore((s) => s.explodeFolder);
+  const collapseFolder = useGraphStore((s) => s.collapseFolder);
   const hideEntity = useGraphStore((s) => s.hideEntity);
   const setNodePosition = useGraphStore((s) => s.setNodePosition);
   const graph = useGraphStore((s) => s.graph);
@@ -76,11 +134,15 @@ function LayoutFlow() {
       kind: node.kind,
       subKind: node.subKind,
       filePath: node.filePath,
+      modulePath: node.modulePath,
       isExternal: node.isExternal,
       isSelected: node.id === selectedEntityId,
-      onSelectNode: (entityId: string) => selectEntity(entityId),
+      onSelectNode: (entityId: string) => {
+        selectEntity(entityId);
+        onRevealInExplorer(entityId);
+      },
     },
-    style: { width: "auto", height: 36 },
+    style: { width: "auto", height: node.modulePath && node.kind !== "module" ? 48 : 36 },
   }));
 
   const edges: Edge[] = visualGraph.edges.map((edge) => {
@@ -134,8 +196,20 @@ function LayoutFlow() {
     );
   }, [visualGraph]);
 
+  useEffect(() => {
+    if (!focusRequest) return;
+    reactFlow.fitView({
+      nodes: [{ id: focusRequest.nodeId }],
+      padding: 0.35,
+      duration: 250,
+      maxZoom: 1.2,
+    });
+  }, [focusRequest, reactFlow]);
+
   const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
     event.preventDefault();
+    selectEntity(node.id);
+    onRevealInExplorer(node.id);
     const pane = flowRef.current?.getBoundingClientRect();
     if (!pane) return;
 
@@ -146,7 +220,7 @@ function LayoutFlow() {
       right: event.clientX >= pane.width - 170 ? pane.width - (event.clientX - pane.left) : false,
       bottom: event.clientY >= pane.height - 160 ? pane.height - (event.clientY - pane.top) : false,
     });
-  }, []);
+  }, [onRevealInExplorer]);
 
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -169,6 +243,279 @@ function LayoutFlow() {
   }, []);
 
   const menuEntity = menu && graph ? graph.entities[menu.nodeId] : null;
+  const menuNode = useMemo(
+    () => (menu ? visualGraph.nodes.find((node) => node.id === menu.nodeId) ?? null : null),
+    [menu, visualGraph.nodes]
+  );
+
+  const dependencyEdges = useMemo(
+    () => relationVisualGraph.edges.filter((edge) => !edge.isOriginEdge),
+    [relationVisualGraph.edges]
+  );
+
+  const visibleNodeCount = visualGraph.nodes.length;
+
+  const menuHasChildren = useMemo(() => {
+    if (!menuNode || !graph) return false;
+
+    if (menuNode.kind === "folder") {
+      const folderPath = menuNode.id.slice("folder:".length);
+      return graph.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath));
+    }
+
+    const entity = graph.entities[menuNode.id];
+    return Boolean(entity && entity.children.length > 0);
+  }, [graph, menuNode]);
+
+  const menuIsPacked = useMemo(() => {
+    if (!menuNode || !graph) return false;
+    if (menuNode.kind === "folder") {
+      const folderPath = menuNode.id.slice("folder:".length);
+      return folderPath.length > 0 && !explodedFolderPaths.has(folderPath);
+    }
+    const entity = graph.entities[menuNode.id];
+    if (!entity) return false;
+    return isEntityPacked(menuNode.id, graph, explodedIds, explodedFolderPaths);
+  }, [explodedFolderPaths, explodedIds, graph, menuNode]);
+
+  const menuPackIntoModuleId = useMemo(() => {
+    if (!graph || !menuNode || menuNode.kind === "folder" || menuNode.kind === "module") return null;
+
+    let current: (typeof graph.entities)[string] | undefined = graph.entities[menuNode.id];
+    while (current) {
+      if (current.kind === "module") {
+        return explodedIds.has(current.id) ? current.id : null;
+      }
+      current = current.parent ? graph.entities[current.parent] : undefined;
+    }
+
+    return null;
+  }, [explodedIds, graph, menuNode]);
+
+  const menuCanShowDependencies = useMemo(() => {
+    if (!menuNode || (menuNode.kind !== "module" && menuNode.kind !== "class" && menuNode.kind !== "function" && menuNode.kind !== "variable" && menuNode.kind !== "method" && menuNode.kind !== "property" && menuNode.kind !== "code-block")) {
+      return false;
+    }
+    return dependencyEdges.some((edge) => edge.source === menuNode.id);
+  }, [dependencyEdges, menuNode]);
+
+  const menuCanShowDependents = useMemo(() => {
+    if (!menuNode || (menuNode.kind !== "module" && menuNode.kind !== "class" && menuNode.kind !== "function" && menuNode.kind !== "variable" && menuNode.kind !== "method" && menuNode.kind !== "property" && menuNode.kind !== "code-block")) {
+      return false;
+    }
+    return dependencyEdges.some((edge) => edge.target === menuNode.id);
+  }, [dependencyEdges, menuNode]);
+
+  const onMenuExplode = useCallback(
+    (id: string) => {
+      if (id.startsWith("folder:")) {
+        explodeFolder(id.slice("folder:".length));
+        return;
+      }
+      explodeEntity(id);
+    },
+    [explodeEntity, explodeFolder]
+  );
+
+  const onMenuCollapse = useCallback(
+    (id: string) => {
+      if (id.startsWith("folder:")) {
+        collapseFolder(id.slice("folder:".length));
+        return;
+      }
+      collapseEntity(id);
+    },
+    [collapseEntity, collapseFolder]
+  );
+
+  const onMenuHide = useCallback(
+    (id: string) => {
+      const folderPath = fromFolderNodeId(id);
+      if (!folderPath || !graph) {
+        hideEntity(id);
+        return;
+      }
+
+      for (const moduleId of graph.modules) {
+        if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+        hideEntity(moduleId);
+      }
+    },
+    [graph, hideEntity]
+  );
+
+  const menuActions = useMemo<ContextMenuAction[]>(() => {
+    if (!menu) return [];
+
+    const actions: ContextMenuAction[] = [];
+
+    if (menuNode && menuHasChildren && menuIsPacked) {
+      actions.push({
+        id: "unpack",
+        label: "Unpack",
+        icon: <Search size={13} />,
+        onSelect: () => onMenuExplode(menu.nodeId),
+      });
+    }
+
+    if (menuNode && menuHasChildren && !menuIsPacked) {
+      actions.push({
+        id: "pack",
+        label: "Pack",
+        icon: <PackageOpen size={13} />,
+        onSelect: () => onMenuCollapse(menu.nodeId),
+      });
+    }
+
+    if (menuPackIntoModuleId) {
+      actions.push({
+        id: "pack-into-module",
+        label: "Pack",
+        icon: <PackageOpen size={13} />,
+        onSelect: () => onMenuCollapse(menuPackIntoModuleId),
+      });
+    }
+
+    if (menuNode?.kind === "folder") {
+      const folderPath = menuNode.id.slice("folder:".length);
+      const hasPackedModules = graph?.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath) && isEntityPacked(moduleId, graph, explodedIds, explodedFolderPaths));
+      const hasUnpackedModules = graph?.modules.some((moduleId) => {
+        if (!isModuleInsideFolder(moduleId, folderPath)) return false;
+        const moduleEntity = graph.entities[moduleId];
+        if (!moduleEntity || moduleEntity.children.length === 0) return false;
+        return explodedIds.has(moduleId);
+      });
+
+      if (hasPackedModules) {
+        actions.push({
+          id: "unpack-all-modules",
+          label: "Unpack all to modules",
+          icon: <Search size={13} />,
+          onSelect: () => {
+            if (!graph) return;
+            for (const moduleId of graph.modules) {
+              if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+              const moduleFolder = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
+              let cursor = moduleFolder;
+              while (cursor) {
+                onMenuExplode(`folder:${cursor}`);
+                const idx = cursor.lastIndexOf("/");
+                cursor = idx >= 0 ? cursor.slice(0, idx) : "";
+              }
+            }
+          },
+        });
+      }
+
+      if (hasUnpackedModules) {
+        actions.push({
+          id: "pack-all-modules",
+          label: "Pack all to modules",
+          icon: <PackageOpen size={13} />,
+          onSelect: () => {
+            if (!graph) return;
+            for (const moduleId of graph.modules) {
+              if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+              onMenuCollapse(moduleId);
+            }
+          },
+        });
+      }
+
+      actions.push({
+        id: "unpack-all-entities",
+        label: "Unpack all to entities",
+        icon: <Box size={13} />,
+        onSelect: () => {
+          if (!graph) return;
+          for (const moduleId of graph.modules) {
+            if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+            const moduleFolder = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
+            let cursor = moduleFolder;
+            while (cursor) {
+              onMenuExplode(`folder:${cursor}`);
+              const idx = cursor.lastIndexOf("/");
+              cursor = idx >= 0 ? cursor.slice(0, idx) : "";
+            }
+            onMenuExplode(moduleId);
+          }
+        },
+      });
+    }
+
+    actions.push({
+      id: "hide",
+      label: "Hide",
+      icon: <EyeOff size={13} />,
+      onSelect: () => onMenuHide(menu.nodeId),
+    });
+
+    actions.push({
+      id: "reveal-explorer",
+      label: "Reveal in explorer",
+      icon: <Crosshair size={13} />,
+      onSelect: () => onRevealInExplorer(menu.nodeId),
+    });
+
+    if (visibleNodeCount > 1) {
+      actions.push({
+        id: "isolate",
+        label: "Isolate",
+        icon: <Target size={13} />,
+        onSelect: () => onIsolate(menu.nodeId),
+      });
+    }
+
+    if (menuCanShowDependencies) {
+      actions.push({
+        id: "show-dependencies-only",
+        label: "Show dependencies only",
+        icon: <ScanLine size={13} />,
+        onSelect: () => onShowDependenciesOnly(menu.nodeId),
+      });
+    }
+
+    if (menuCanShowDependents) {
+      actions.push({
+        id: "show-dependents-only",
+        label: "Show dependents only",
+        icon: <ScanLine size={13} />,
+        onSelect: () => onShowDependentsOnly(menu.nodeId),
+      });
+    }
+
+    if (menuCanShowDependencies || menuCanShowDependents) {
+      actions.push({
+        id: "show-more-relationships",
+        label: "Show more relationships",
+        icon: <ScanLine size={13} />,
+        onSelect: () => onShowMoreRelationships(menu.nodeId),
+      });
+    }
+
+    return actions;
+  }, [
+    dependencyEdges,
+    explodedFolderPaths,
+    explodedIds,
+    graph,
+    menu,
+    menuCanShowDependencies,
+    menuCanShowDependents,
+    menuHasChildren,
+    menuIsPacked,
+    menuPackIntoModuleId,
+    menuNode,
+    onIsolate,
+    onMenuCollapse,
+    onMenuExplode,
+    onMenuHide,
+    onRevealInExplorer,
+    onShowMoreRelationships,
+    onShowDependenciesOnly,
+    onShowDependentsOnly,
+    visibleNodeCount,
+  ]);
 
   return (
     <div ref={flowRef} style={{ width: "100%", height: "100%" }}>
@@ -196,11 +543,7 @@ function LayoutFlow() {
         {menu && (
           <ContextMenu
             {...menu}
-            canExplode={menuEntity?.canExplode ?? false}
-            isExploded={explodedIds.has(menu.nodeId)}
-            onExplode={explodeEntity}
-            onCollapse={collapseEntity}
-            onHide={hideEntity}
+            actions={menuActions}
             onClose={closeMenu}
           />
         )}
@@ -261,15 +604,161 @@ function LayoutButtons({ onReheat }: LayoutButtonsProps) {
 
 export default function Graph() {
   const query = trpc.graph.get.useQuery();
+  const explorerPaneWidth = useUiStore(selectExplorerPaneWidth);
+  const setExplorerPaneWidth = useUiStore((s) => s.setExplorerPaneWidth);
   const paneWidth = useUiStore(selectPaneWidth);
   const setPaneWidth = useUiStore((s) => s.setPaneWidth);
+  const graph = useGraphStore(selectGraphData);
+  const explodedIds = useGraphStore(selectExplodedIds);
+  const explodedFolderPaths = useGraphStore(selectExplodedFolderPaths);
+  const hiddenIds = useGraphStore(selectHiddenIds);
+  const explodeEntity = useGraphStore((s) => s.explodeEntity);
+  const collapseEntity = useGraphStore((s) => s.collapseEntity);
+  const explodeFolder = useGraphStore((s) => s.explodeFolder);
+  const collapseFolder = useGraphStore((s) => s.collapseFolder);
+  const hideEntity = useGraphStore((s) => s.hideEntity);
+  const showEntity = useGraphStore((s) => s.showEntity);
+  const applyVisibilityMask = useGraphStore((s) => s.applyVisibilityMask);
+  const [revealInExplorerRequest, setRevealInExplorerRequest] = useState<{ nodeId: string; token: number } | null>(null);
+  const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null);
   const isDraggingDivider = useRef(false);
+  const isDraggingExplorerDivider = useRef(false);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (query.data) {
       loadGraph(query.data);
     }
   }, [query.data]);
+
+  const visualGraph = useMemo(
+    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, hiddenIds),
+    [graph, explodedIds, explodedFolderPaths, hiddenIds]
+  );
+
+  const relationGraph = useMemo(
+    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, new Set<string>()),
+    [graph, explodedIds, explodedFolderPaths]
+  );
+  const relationEdges = useMemo(
+    () => relationGraph.edges.filter((edge) => !edge.isOriginEdge),
+    [relationGraph.edges]
+  );
+
+  const resolveSeedIds = useCallback((nodeId: string): Set<string> => {
+    if (!graph) return new Set<string>([nodeId]);
+
+    const folderPath = fromFolderNodeId(nodeId);
+    if (!folderPath) return new Set<string>([nodeId]);
+
+    const seeds = new Set<string>();
+    for (const moduleId of graph.modules) {
+      if (isModuleInsideFolder(moduleId, folderPath)) {
+        seeds.add(moduleId);
+      }
+    }
+    return seeds;
+  }, [graph]);
+
+  const resolveRelatedIds = useCallback((nodeId: string, direction: "outgoing" | "incoming" | "both"): Set<string> => {
+    const seeds = resolveSeedIds(nodeId);
+    const related = new Set<string>();
+
+    for (const edge of relationEdges) {
+      const sourceMatches = seeds.has(edge.source);
+      const targetMatches = seeds.has(edge.target);
+
+      if ((direction === "outgoing" || direction === "both") && sourceMatches) {
+        related.add(edge.target);
+      }
+      if ((direction === "incoming" || direction === "both") && targetMatches) {
+        related.add(edge.source);
+      }
+    }
+
+    return related;
+  }, [relationEdges, resolveSeedIds]);
+
+  const addEntityAncestors = useCallback((ids: Set<string>): Set<string> => {
+    if (!graph) return ids;
+
+    const next = new Set(ids);
+    for (const id of Array.from(ids)) {
+      if (id.startsWith("external:")) continue;
+      let current = graph.entities[id];
+      while (current?.parent) {
+        next.add(current.parent);
+        current = graph.entities[current.parent];
+      }
+    }
+
+    return next;
+  }, [graph]);
+
+  const setVisibilityByIds = useCallback((visibleIds: Set<string>) => {
+    if (!graph) return;
+
+    const withAncestors = addEntityAncestors(visibleIds);
+    applyVisibilityMask(withAncestors);
+  }, [addEntityAncestors, applyVisibilityMask, graph]);
+
+  const currentlyVisibleIds = useMemo(() => {
+    if (!graph) return new Set<string>();
+
+    const ids = new Set<string>();
+    for (const id of Object.keys(graph.entities)) {
+      if (!hiddenIds.has(id)) ids.add(id);
+    }
+    for (const ext of graph.externalModules) {
+      const extId = `external:${ext.moduleSpecifier}`;
+      if (!hiddenIds.has(extId)) ids.add(extId);
+    }
+    return ids;
+  }, [graph, hiddenIds]);
+
+  const onIsolate = useCallback((nodeId: string) => {
+    const keepIds = resolveSeedIds(nodeId);
+    for (const relatedId of resolveRelatedIds(nodeId, "both")) {
+      keepIds.add(relatedId);
+    }
+
+    setVisibilityByIds(keepIds);
+  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+
+  const onShowDependenciesOnly = useCallback((nodeId: string) => {
+    const keepIds = resolveSeedIds(nodeId);
+    for (const relatedId of resolveRelatedIds(nodeId, "outgoing")) {
+      keepIds.add(relatedId);
+    }
+    setVisibilityByIds(keepIds);
+  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+
+  const onShowDependentsOnly = useCallback((nodeId: string) => {
+    const keepIds = resolveSeedIds(nodeId);
+    for (const relatedId of resolveRelatedIds(nodeId, "incoming")) {
+      keepIds.add(relatedId);
+    }
+    setVisibilityByIds(keepIds);
+  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+
+  const onShowMoreRelationships = useCallback((nodeId: string) => {
+    const keepIds = new Set<string>(currentlyVisibleIds);
+    keepIds.add(nodeId);
+    for (const relatedId of resolveRelatedIds(nodeId, "both")) {
+      keepIds.add(relatedId);
+    }
+    setVisibilityByIds(keepIds);
+  }, [currentlyVisibleIds, resolveRelatedIds, setVisibilityByIds]);
+
+  const onFocusInGraph = useCallback((nodeId: string) => {
+    setFocusRequest({ nodeId, token: Date.now() });
+    selectEntity(nodeId);
+  }, []);
+
+  const onRevealInExplorer = useCallback((nodeId: string) => {
+    setRevealInExplorerRequest({ nodeId, token: Date.now() });
+  }, []);
 
   const onDividerMouseDown = useCallback(
     (event: React.MouseEvent) => {
@@ -278,7 +767,10 @@ export default function Graph() {
 
       const onMove = (mouseEvent: MouseEvent) => {
         if (!isDraggingDivider.current) return;
-        setPaneWidth((mouseEvent.clientX / window.innerWidth) * 100);
+        const workspaceRect = workspaceRef.current?.getBoundingClientRect();
+        if (!workspaceRect || workspaceRect.width <= 0) return;
+        const relativeX = mouseEvent.clientX - workspaceRect.left;
+        setPaneWidth((relativeX / workspaceRect.width) * 100);
       };
 
       const onUp = () => {
@@ -291,6 +783,31 @@ export default function Graph() {
       window.addEventListener("mouseup", onUp);
     },
     [setPaneWidth]
+  );
+
+  const onExplorerDividerMouseDown = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      isDraggingExplorerDivider.current = true;
+
+      const onMove = (mouseEvent: MouseEvent) => {
+        if (!isDraggingExplorerDivider.current) return;
+        const rootRect = rootRef.current?.getBoundingClientRect();
+        if (!rootRect || rootRect.width <= 0) return;
+        const relativeX = mouseEvent.clientX - rootRect.left;
+        setExplorerPaneWidth((relativeX / rootRect.width) * 100);
+      };
+
+      const onUp = () => {
+        isDraggingExplorerDivider.current = false;
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [setExplorerPaneWidth]
   );
 
   if (query.isLoading) {
@@ -309,14 +826,29 @@ export default function Graph() {
   if (!query.data) return null;
 
   return (
-    <div style={{ display: "flex", width: "100vw", height: "100vh", background: "#0f172a", overflow: "hidden" }}>
-      <div style={{ width: `${paneWidth}%`, height: "100%", flexShrink: 0, background: "#f1f5f9" }}>
-        <ReactFlowProvider>
-          <LayoutFlow />
-        </ReactFlowProvider>
+    <div ref={rootRef} style={{ display: "flex", width: "100vw", height: "100vh", background: "#0f172a", overflow: "hidden" }}>
+      <div style={{ width: `${explorerPaneWidth}%`, height: "100%", flexShrink: 0, minWidth: 220 }}>
+        <FileExplorer
+          graph={graph}
+          explodedIds={explodedIds}
+          explodedFolderPaths={explodedFolderPaths}
+          hiddenIds={hiddenIds}
+          onExplode={explodeEntity}
+          onCollapse={collapseEntity}
+          onExplodeFolder={explodeFolder}
+          onCollapseFolder={collapseFolder}
+          onHide={hideEntity}
+          onShow={showEntity}
+          onFocusInGraph={onFocusInGraph}
+          onIsolate={onIsolate}
+          onShowDependenciesOnly={onShowDependenciesOnly}
+          onShowDependentsOnly={onShowDependentsOnly}
+          onShowMoreRelationships={onShowMoreRelationships}
+          revealRequest={revealInExplorerRequest}
+        />
       </div>
       <div
-        onMouseDown={onDividerMouseDown}
+        onMouseDown={onExplorerDividerMouseDown}
         style={{
           width: 4,
           height: "100%",
@@ -328,8 +860,35 @@ export default function Graph() {
         onMouseEnter={(event) => (event.currentTarget.style.background = "#334155")}
         onMouseLeave={(event) => (event.currentTarget.style.background = "#1e293b")}
       />
-      <div style={{ flex: 1, height: "100%", overflow: "hidden" }}>
-        <CodePane />
+      <div ref={workspaceRef} style={{ display: "flex", flex: 1, minWidth: 0, height: "100%" }}>
+        <div style={{ width: `${paneWidth}%`, height: "100%", flexShrink: 0, background: "#f1f5f9" }}>
+          <ReactFlowProvider>
+            <LayoutFlow
+              onRevealInExplorer={onRevealInExplorer}
+              onIsolate={onIsolate}
+              onShowDependenciesOnly={onShowDependenciesOnly}
+              onShowDependentsOnly={onShowDependentsOnly}
+              onShowMoreRelationships={onShowMoreRelationships}
+              focusRequest={focusRequest}
+            />
+          </ReactFlowProvider>
+        </div>
+        <div
+          onMouseDown={onDividerMouseDown}
+          style={{
+            width: 4,
+            height: "100%",
+            flexShrink: 0,
+            background: "#1e293b",
+            cursor: "col-resize",
+            transition: "background 0.1s",
+          }}
+          onMouseEnter={(event) => (event.currentTarget.style.background = "#334155")}
+          onMouseLeave={(event) => (event.currentTarget.style.background = "#1e293b")}
+        />
+        <div style={{ flex: 1, height: "100%", overflow: "hidden" }}>
+          <CodePane />
+        </div>
       </div>
     </div>
   );

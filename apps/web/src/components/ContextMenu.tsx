@@ -1,16 +1,20 @@
 import type React from "react";
 
+export type ContextMenuAction = {
+  id: string;
+  label: string;
+  icon?: React.ReactNode;
+  onSelect: () => void;
+  disabled?: boolean;
+};
+
 type Props = {
-  nodeId: string;
   top: number | false;
   left: number | false;
   right: number | false;
   bottom: number | false;
-  canExplode: boolean;
-  isExploded: boolean;
-  onExplode: (id: string) => void;
-  onCollapse: (id: string) => void;
-  onHide: (id: string) => void;
+  actions: ContextMenuAction[];
+  minWidth?: number;
   onClose: () => void;
 };
 
@@ -31,11 +35,18 @@ const item: React.CSSProperties = {
 };
 
 export default function ContextMenu({
-  nodeId,
-  top, left, right, bottom,
-  canExplode, isExploded,
-  onExplode, onCollapse, onHide, onClose,
+  top,
+  left,
+  right,
+  bottom,
+  actions,
+  minWidth = 155,
+  onClose,
 }: Props) {
+  const visibleActions = actions.filter((action) => !action.disabled);
+
+  if (visibleActions.length === 0) return null;
+
   return (
     <div
       style={{
@@ -49,32 +60,22 @@ export default function ContextMenu({
         borderRadius: 8,
         padding: "4px",
         zIndex: 1000,
-        minWidth: 155,
+        minWidth,
         boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
       }}
     >
-      {canExplode && !isExploded && (
+      {visibleActions.map((action) => (
         <button
+          key={action.id}
           style={item}
-          onMouseDown={() => { onExplode(nodeId); onClose(); }}
+          onMouseDown={() => {
+            action.onSelect();
+            onClose();
+          }}
         >
-          <span>🔍</span> Explode
+          {action.icon ?? <span style={{ width: 13 }} />} {action.label}
         </button>
-      )}
-      {isExploded && (
-        <button
-          style={item}
-          onMouseDown={() => { onCollapse(nodeId); onClose(); }}
-        >
-          <span>⊟</span> Collapse
-        </button>
-      )}
-      <button
-        style={item}
-        onMouseDown={() => { onHide(nodeId); onClose(); }}
-      >
-        <span>🙈</span> Hide
-      </button>
+      ))}
     </div>
   );
 }

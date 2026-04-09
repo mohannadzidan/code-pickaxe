@@ -6,12 +6,14 @@ export type FileNodeData = {
   kind: string;
   subKind?: string;
   filePath?: string;
+  modulePath?: string;
   isExternal?: boolean;
   isSelected?: boolean;
   onSelectNode: (entityId: string) => void;
 };
 
 const KIND_COLOR: Record<string, string> = {
+  folder:       "#f59e0b",
   module:       "#6366f1",
   class:        "#0ea5e9",
   function:     "#10b981",
@@ -22,6 +24,7 @@ const KIND_COLOR: Record<string, string> = {
 };
 
 const KIND_BADGE: Record<string, string> = {
+  folder:       "folder",
   module:       "module",
   class:        "class",
   function:     "func",
@@ -92,6 +95,23 @@ export default function FileNode({ id, data }: NodeProps) {
           {d.filePath ?? d.label}
         </span>
       </div>
+
+      {d.modulePath && d.kind !== "module" && (
+        <div
+          style={{
+            padding: "0 10px 6px",
+            fontSize: 10,
+            color: "#64748b",
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+          title={d.modulePath}
+        >
+          {d.modulePath}
+        </div>
+      )}
 
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0, pointerEvents: "none" }} />
     </div>
