@@ -2,7 +2,7 @@
 name: walker
 description: A highly specialized agent that generates comprehensive walkthroughs of features or user journeys. It first outlines the conceptual nature of the feature, then provides a deep technical walkthrough based on actual code.
 argument-hint: A feature, user journey, or area of the codebase to investigate and explain.
-tools: ['read', 'search', 'agent']
+tools: ['read', 'search', 'execute','agent']
 model: GPT-5 mini (copilot)
 agents: ['explorer']
 ---

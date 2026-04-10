@@ -1,1 +1,1 @@
-export type { DomainEdge, DomainNode, LayoutDirection, NodePositions, VisualGraph } from "@/shared/types/domain";
+export type { DomainEdge, DomainNode, GraphState, LayoutDirection, NodePositions, VisualGraph } from "@/shared/types/domain";

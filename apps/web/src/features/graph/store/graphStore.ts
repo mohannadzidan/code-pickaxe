@@ -1,16 +1,11 @@
-import type { SerializedCodeGraph } from "@api/parsing/types";
-import { create } from "zustand";
-import type { LayoutDirection, NodePositions, VisualGraph } from "@/shared/types/domain";
-import { services } from "@/app/bootstrap";
-import { getFolderPathForModule, getParentFolderPath, isModuleInsideFolder, normalizePath } from "@/features/graph/services/folderPath";
+import type { SerializedCodeGraph } from '@api/parsing/types';
+import { create } from 'zustand';
+import type { DomainNode, GraphState, LayoutDirection, NodePositions, VisualGraph } from '@/shared/types/domain';
+import { services } from '@/app/bootstrap';
 
-type GraphState = {
+type StoreState = GraphState & {
   graph: SerializedCodeGraph | null;
-  explodedIds: Set<string>;
-  explodedFolderPaths: Set<string>;
-  hiddenIds: Set<string>;
   layoutDirection: LayoutDirection;
-  nodePositions: NodePositions;
 };
 
 type GraphActions = {
@@ -18,8 +13,6 @@ type GraphActions = {
   setLayoutDirection: (direction: LayoutDirection) => void;
   explodeEntity: (entityId: string) => void;
   collapseEntity: (entityId: string) => void;
-  explodeFolder: (folderPath: string) => void;
-  collapseFolder: (folderPath: string) => void;
   hideEntity: (entityId: string) => void;
   showEntity: (entityId: string) => void;
   applyVisibilityMask: (visibleIds: Set<string>) => void;
@@ -27,332 +20,243 @@ type GraphActions = {
   setNodePositions: (positions: NodePositions) => void;
 };
 
-type GraphStore = GraphState & GraphActions;
+type GraphStore = StoreState & GraphActions;
 
-const project = (state: GraphState): VisualGraph => {
-  return services.graphProjectionService.buildVisualGraph(
-    state.graph,
-    state.explodedIds,
-    state.explodedFolderPaths,
-    state.hiddenIds
-  );
+const isPositionDefault = (position: { x: number; y: number }): boolean => position.x === 0 && position.y === 0;
+
+const childIdMap = (nodes: GraphState['nodes']): Map<string, string[]> => {
+  const map = new Map<string, string[]>();
+  for (const node of Object.values(nodes)) {
+    const parentId = node.parentId;
+    if (!parentId) continue;
+    const list = map.get(parentId) ?? [];
+    list.push(node.id);
+    map.set(parentId, list);
+  }
+  return map;
 };
 
-const resolvePositions = (vg: VisualGraph, direction: LayoutDirection, previous: NodePositions): NodePositions => {
-  const laidOut = services.layoutService.computePositions(vg, direction);
-  const next: NodePositions = {};
+const recursivelyMutateChildren = (
+  nodes: GraphState['nodes'],
+  rootId: string,
+  mutator: (node: GraphState['nodes'][string]) => void
+): void => {
+  nodes[rootId]?.children.forEach((childId) => {
+    mutator(nodes[childId]);
+    recursivelyMutateChildren(nodes, childId, mutator);
+  });
+};
 
-  for (const node of vg.nodes) {
-    next[node.id] = previous[node.id] ?? laidOut[node.id] ?? { x: 0, y: 0 };
+const collectAncestors = (nodes: GraphState['nodes'], id: string): string[] => {
+  const result: string[] = [];
+  let cursor = nodes[id]?.parentId;
+
+  while (cursor) {
+    result.push(cursor);
+    cursor = nodes[cursor]?.parentId;
   }
 
+  return result;
+};
+
+const cloneNodes = (nodes: GraphState['nodes']): GraphState['nodes'] => {
+  const next: GraphState['nodes'] = {};
+  for (const [id, node] of Object.entries(nodes)) {
+    next[id] = { ...node };
+  }
   return next;
+};
+
+const recomputeFolderVisibility = (nodes: GraphState['nodes']): void => {
+  const byParent = childIdMap(nodes);
+  const folders = Object.values(nodes)
+    .filter((node) => node.kind === 'folder')
+    .sort((a, b) => b.id.length - a.id.length);
+
+  for (const folder of folders) {
+    const childIds = byParent.get(folder.id) ?? [];
+    const hasVisibleChildren = childIds.some((childId) => nodes[childId] && !nodes[childId].hidden);
+    nodes[folder.id] = {
+      ...nodes[folder.id],
+      hidden: !hasVisibleChildren,
+    };
+  }
+};
+
+const project = (state: GraphState): VisualGraph => services.graphProjectionService.buildVisualGraph(state);
+
+const withResolvedPositions = (
+  prevNodes: GraphState['nodes'],
+  nextNodes: GraphState['nodes'],
+  edges: GraphState['edges'],
+  direction: LayoutDirection,
+  forceLayout = false
+): GraphState['nodes'] => {
+  const vg = project({ nodes: nextNodes, edges });
+  const laidOut = services.layoutService.computePositions(vg, direction);
+  const resolved = cloneNodes(nextNodes);
+
+  for (const node of vg.nodes) {
+    const previous = prevNodes[node.id]?.position;
+    const fallback = laidOut[node.id] ?? previous ?? { x: 0, y: 0 };
+    const shouldUseLayout = forceLayout || !previous || isPositionDefault(previous);
+
+    resolved[node.id] = {
+      ...resolved[node.id],
+      position: shouldUseLayout ? fallback : previous,
+    };
+  }
+
+  return resolved;
+};
+
+const setEntityVisibility = (
+  nodes: Record<string, DomainNode>,
+  entityId: string,
+  hidden: boolean,
+  directChildrenVisibility?: boolean,
+  indirectChildrenVisibility?: boolean
+) => {
+  if (!nodes[entityId]) return nodes;
+
+  const mutated: Record<string, DomainNode> = {};
+  const directChildren = nodes[entityId].children;
+  const position = nodes[entityId].position;
+  if (indirectChildrenVisibility !== undefined) {
+    for (const childId of directChildren) {
+      if (directChildrenVisibility !== undefined && nodes[childId].hidden !== directChildrenVisibility) {
+        nodes[childId] = { ...nodes[childId], hidden: directChildrenVisibility, position };
+      }
+      if (indirectChildrenVisibility !== undefined) {
+        recursivelyMutateChildren(nodes, childId, (node) => {
+          if (nodes[node.id].hidden !== indirectChildrenVisibility) {
+            mutated[node.id] = { ...node, hidden: indirectChildrenVisibility, position };
+          }
+        });
+      }
+    }
+  }
+
+  mutated[entityId] = { ...nodes[entityId], hidden };
+
+  const nextNodes = { ...nodes, ...mutated };
+  return nextNodes;
 };
 
 export const useGraphStore = create<GraphStore>((set, get) => ({
   graph: null,
-  explodedIds: new Set<string>(),
-  explodedFolderPaths: new Set<string>(),
-  hiddenIds: new Set<string>(),
-  layoutDirection: "TB",
-  nodePositions: {},
+  nodes: {},
+  edges: {},
+  layoutDirection: 'TB',
 
   loadGraph: (graph) => {
-    const draft: GraphState = {
-      graph,
-      explodedIds: new Set<string>(),
-      explodedFolderPaths: new Set<string>(),
-      hiddenIds: new Set<string>(),
-      layoutDirection: get().layoutDirection,
-      nodePositions: {},
-    };
-
-    const vg = project(draft);
+    const draft = services.graphProjectionService.buildGraphState(graph);
+    const nodes = withResolvedPositions(draft.nodes, draft.nodes, draft.edges, get().layoutDirection, true);
+    console.log('Loaded graph with', Object.keys(draft.nodes).length, 'nodes and', Object.keys(draft.edges).length, 'edges');
+    console.log(nodes, draft.edges)
     set({
       graph,
-      explodedIds: draft.explodedIds,
-      explodedFolderPaths: draft.explodedFolderPaths,
-      hiddenIds: draft.hiddenIds,
-      nodePositions: services.layoutService.computePositions(vg, draft.layoutDirection),
+      nodes,
+      edges: draft.edges,
     });
   },
 
   setLayoutDirection: (direction) => {
     const state = get();
-    const nextState: GraphState = {
-      ...state,
-      layoutDirection: direction,
-    };
-    const vg = project(nextState);
-    set({
-      layoutDirection: direction,
-      nodePositions: services.layoutService.computePositions(vg, direction),
-    });
-  },
-
-  explodeEntity: (entityId) => {
-    const state = get();
-    if (!state.graph) return;
-
-    const explodedIds = new Set(state.explodedIds);
-    const explodedFolderPaths = new Set(state.explodedFolderPaths);
-    const hiddenIds = new Set(state.hiddenIds);
-
-    let current = state.graph.entities[entityId];
-    hiddenIds.delete(entityId);
-    while (current?.parent) {
-      explodedIds.add(current.parent);
-      hiddenIds.delete(current.parent);
-      current = state.graph.entities[current.parent];
-    }
-
-    // unhide all children of the exploded entity
-
-    const stack = [entityId];
-    while (stack.length) {
-      const currentId = stack.pop()!;
-      hiddenIds.delete(currentId);
-      const entity = state.graph?.entities[currentId];
-      if (!entity) continue;
-      for (const childId of entity.children) stack.push(childId);
-    }
-
-    explodedIds.add(entityId);
-
-    let moduleId: string | null = null;
-    let cursor: (typeof state.graph.entities)[string] | undefined = state.graph.entities[entityId];
-    while (cursor) {
-      if (cursor.kind === "module") {
-        moduleId = cursor.id;
-        break;
-      }
-      cursor = cursor.parent ? state.graph.entities[cursor.parent] : undefined;
-    }
-
-    if (moduleId) {
-      let folderPath = getFolderPathForModule(moduleId);
-      while (folderPath) {
-        explodedFolderPaths.add(folderPath);
-        folderPath = getParentFolderPath(folderPath);
-      }
-    }
-
-    const nextState: GraphState = { ...state, explodedIds, explodedFolderPaths, hiddenIds };
-    const vg = project(nextState);
+    const nodes = withResolvedPositions(state.nodes, state.nodes, state.edges, direction, true);
 
     set({
-      explodedIds,
-      explodedFolderPaths,
-      hiddenIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
+      layoutDirection: direction,
+      nodes,
     });
   },
 
   collapseEntity: (entityId) => {
     const state = get();
-    if (!state.explodedIds.has(entityId) || !state.graph) return;
-
-    const explodedIds = new Set(state.explodedIds);
-    explodedIds.delete(entityId);
-
-    for (const id of Array.from(explodedIds)) {
-      let current: string | null = id;
-      while (current) {
-        const entity = state.graph.entities[current] as { parent?: string | null } | undefined;
-        if (!entity) break;
-        if (entity.parent === entityId) {
-          explodedIds.delete(id);
-          break;
-        }
-        current = entity.parent ?? null;
-      }
-    }
-
-    const nextState: GraphState = { ...state, explodedIds };
-    const vg = project(nextState);
-
-    set({
-      explodedIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
+    if (!state.nodes[entityId]) return;
+    const nextNodes = setEntityVisibility(state.nodes, entityId, false, true, true);
+    set({ nodes: nextNodes });
   },
 
-  explodeFolder: (folderPath) => {
+  explodeEntity: (entityId) => {
     const state = get();
-    const normalized = normalizePath(folderPath);
-    if (!state.graph || !normalized || state.explodedFolderPaths.has(normalized)) return;
-
-    const explodedFolderPaths = new Set(state.explodedFolderPaths);
-    const hiddenIds = new Set(state.hiddenIds);
-    let currentPath: string | null = normalized;
-    while (currentPath) {
-      explodedFolderPaths.add(currentPath);
-      currentPath = getParentFolderPath(currentPath) || null;
-    }
-
-    for (const moduleId of state.graph.modules) {
-      if (!isModuleInsideFolder(moduleId, normalized)) continue;
-      hiddenIds.delete(moduleId);
-    }
-
-    const nextState: GraphState = { ...state, explodedFolderPaths, hiddenIds };
-    const vg = project(nextState);
-
-    set({
-      explodedFolderPaths,
-      hiddenIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
-  },
-
-  collapseFolder: (folderPath) => {
-    const state = get();
-    const normalized = normalizePath(folderPath);
-    if (!state.graph || !normalized) return;
-
-    const explodedFolderPaths = new Set(state.explodedFolderPaths);
-    let changed = false;
-
-    for (const candidate of Array.from(explodedFolderPaths)) {
-      if (candidate === normalized || candidate.startsWith(`${normalized}/`)) {
-        explodedFolderPaths.delete(candidate);
-        changed = true;
-      }
-    }
-
-    const explodedIds = new Set(state.explodedIds);
-    for (const entityId of Array.from(explodedIds)) {
-      let current: (typeof state.graph.entities)[string] | undefined = state.graph.entities[entityId];
-      let moduleId: string | null = null;
-      while (current) {
-        if (current.kind === "module") {
-          moduleId = current.id;
-          break;
-        }
-        current = current.parent ? state.graph.entities[current.parent] : undefined;
-      }
-
-      if (!moduleId) continue;
-      if (isModuleInsideFolder(moduleId, normalized)) {
-        explodedIds.delete(entityId);
-        changed = true;
-      }
-    }
-
-    if (!changed) return;
-
-    const nextState: GraphState = { ...state, explodedFolderPaths, explodedIds };
-    const vg = project(nextState);
-
-    set({
-      explodedFolderPaths,
-      explodedIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
+    if (!state.nodes[entityId]) return;
+    const nextNodes = setEntityVisibility(state.nodes, entityId, true, false, true);
+    if (nextNodes === state.nodes) return;
+    set({ nodes: nextNodes });
   },
 
   hideEntity: (entityId) => {
     const state = get();
-    if (!state.graph || state.hiddenIds.has(entityId)) return;
-
-    const hiddenIds = new Set(state.hiddenIds);
-    const stack = [entityId];
-
-    while (stack.length) {
-      const current = stack.pop()!;
-      if (hiddenIds.has(current)) continue;
-      hiddenIds.add(current);
-
-      const entity = state.graph.entities[current];
-      if (!entity) continue;
-      for (const childId of entity.children) stack.push(childId);
-    }
-
-    const explodedIds = new Set(state.explodedIds);
-    for (const id of hiddenIds) explodedIds.delete(id);
-
-    const nextState: GraphState = { ...state, hiddenIds, explodedIds };
-    const vg = project(nextState);
-
-    set({
-      hiddenIds,
-      explodedIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
+    if (!state.nodes[entityId]) return;
+    const nextNodes = setEntityVisibility(state.nodes, entityId, true, true, true);
+    set({ nodes: nextNodes });
   },
 
   showEntity: (entityId) => {
     const state = get();
-    if (!state.graph || !state.hiddenIds.has(entityId)) return;
-
-    const hiddenIds = new Set(state.hiddenIds);
-    const stack = [entityId];
-
-    while (stack.length) {
-      const current = stack.pop()!;
-      hiddenIds.delete(current);
-
-      const entity = state.graph.entities[current];
-      if (!entity) continue;
-      for (const childId of entity.children) stack.push(childId);
-    }
-
-    const nextState: GraphState = { ...state, hiddenIds };
-    const vg = project(nextState);
-
-    set({
-      hiddenIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
+    if (!state.nodes[entityId]) return;
+    const nextNodes = setEntityVisibility(state.nodes, entityId, false, true, true);
+    set({ nodes: nextNodes });
   },
 
   applyVisibilityMask: (visibleIds) => {
     const state = get();
-    if (!state.graph) return;
+    const nodes = cloneNodes(state.nodes);
 
-    const hiddenIds = new Set<string>();
+    for (const node of Object.values(nodes)) {
+      if (node.kind === 'folder') continue;
+      nodes[node.id] = { ...node, hidden: !visibleIds.has(node.id) };
+    }
 
-    for (const id of Object.keys(state.graph.entities)) {
-      if (!visibleIds.has(id)) {
-        hiddenIds.add(id);
+    for (const id of visibleIds) {
+      if (!nodes[id]) continue;
+      nodes[id] = { ...nodes[id], hidden: false };
+      for (const ancestorId of collectAncestors(nodes, id)) {
+        nodes[ancestorId] = { ...nodes[ancestorId], hidden: false };
       }
     }
 
-    for (const ext of state.graph.externalModules) {
-      const extId = `external:${ext.moduleSpecifier}`;
-      if (!visibleIds.has(extId)) {
-        hiddenIds.add(extId);
-      }
-    }
+    recomputeFolderVisibility(nodes);
+    const resolved = withResolvedPositions(state.nodes, nodes, state.edges, state.layoutDirection);
 
-    const nextState: GraphState = { ...state, hiddenIds };
-    const vg = project(nextState);
-
-    set({
-      hiddenIds,
-      nodePositions: resolvePositions(vg, state.layoutDirection, state.nodePositions),
-    });
+    set({ nodes: resolved });
   },
 
   setNodePosition: (nodeId, position) => {
-    set((state) => ({
-      nodePositions: {
-        ...state.nodePositions,
-        [nodeId]: position,
-      },
-    }));
+    set((state) => {
+      const node = state.nodes[nodeId];
+      if (!node) return {};
+
+      return {
+        nodes: {
+          ...state.nodes,
+          [nodeId]: {
+            ...node,
+            position,
+          },
+        },
+      };
+    });
   },
 
   setNodePositions: (positions) => {
-    set(() => ({
-      nodePositions: positions,
-    }));
+    set((state) => {
+      const nodes = cloneNodes(state.nodes);
+
+      for (const [id, position] of Object.entries(positions)) {
+        const node = nodes[id];
+        if (!node) continue;
+        nodes[id] = { ...node, position };
+      }
+
+      return { nodes };
+    });
   },
 }));
 
 export const selectGraphData = (state: GraphStore) => state.graph;
 export const selectLayoutDirection = (state: GraphStore) => state.layoutDirection;
-export const selectExplodedIds = (state: GraphStore) => state.explodedIds;
-export const selectExplodedFolderPaths = (state: GraphStore) => state.explodedFolderPaths;
-export const selectHiddenIds = (state: GraphStore) => state.hiddenIds;
-export const selectNodePositions = (state: GraphStore) => state.nodePositions;
+export const selectNodes = (state: GraphStore) => state.nodes;
+export const selectEdges = (state: GraphStore) => state.edges;
+export const selectNodesList = (state: GraphStore) => Object.values(state.nodes);

@@ -20,20 +20,17 @@ import {
 } from "lucide-react";
 import { selectEntity } from "@/orchestrators/selectEntity";
 import { getFolderPathForModule, getParentFolderPath, normalizePath } from "@/features/graph/services/folderPath";
-import { services } from "@/app/bootstrap";
 import { selectSelectedEntityId, useSelectionStore } from "@/features/selection/store/selectionStore";
+import type { GraphState } from "@/shared/types/domain";
 import ContextMenu from "./ContextMenu";
 import type { ContextMenuAction } from "./ContextMenu";
 
 type Props = {
   graph: SerializedCodeGraph | null;
-  explodedIds: Set<string>;
-  explodedFolderPaths: Set<string>;
-  hiddenIds: Set<string>;
+  graphNodes: GraphState["nodes"];
+  graphEdges: GraphState["edges"];
   onExplode: (id: string) => void;
   onCollapse: (id: string) => void;
-  onExplodeFolder: (folderPath: string) => void;
-  onCollapseFolder: (folderPath: string) => void;
   onHide: (id: string) => void;
   onShow: (id: string) => void;
   onFocusInGraph: (nodeId: string) => void;
@@ -129,7 +126,7 @@ const buildEntityTree = (entityId: string, graph: SerializedCodeGraph): EntityIt
     name: getEntityDisplayName(entity),
     entityId: entity.id,
     kind: entity.kind,
-    canExplode: entity.canExplode,
+    canExplode: entity.children.length > 0,
     children: sortedItems(children),
   };
 };
@@ -192,27 +189,16 @@ const buildTree = (graph: SerializedCodeGraph | null): ExplorerItem[] => {
 const isEntityPacked = (
   entityId: string,
   graph: SerializedCodeGraph,
-  explodedIds: Set<string>,
-  explodedFolderPaths: Set<string>
+  childByParent: Map<string, string[]>,
+  hiddenById: Record<string, boolean>
 ): boolean => {
   const entity = graph.entities[entityId];
-  if (entity?.children.length && !explodedIds.has(entityId)) return true;
+  if (!entity || entity.children.length === 0) return false;
 
-  let current = graph.entities[entityId];
+  const directChildren = childByParent.get(entityId) ?? [];
+  if (directChildren.length === 0) return true;
 
-  while (current?.parent) {
-    if (!explodedIds.has(current.parent)) return true;
-    current = graph.entities[current.parent];
-  }
-
-  const folderPath = getFolderPathForModule(entityId);
-  let cursor = folderPath;
-  while (cursor) {
-    if (!explodedFolderPaths.has(cursor)) return true;
-    cursor = getParentFolderPath(cursor);
-  }
-
-  return false;
+  return directChildren.every((childId) => hiddenById[childId]);
 };
 
 const getDefaultExpanded = (items: ExplorerItem[]): Set<string> => {
@@ -237,13 +223,10 @@ const getDefaultExpanded = (items: ExplorerItem[]): Set<string> => {
 
 export default function FileExplorer({
   graph,
-  explodedIds,
-  explodedFolderPaths,
-  hiddenIds,
+  graphNodes,
+  graphEdges,
   onExplode,
   onCollapse,
-  onExplodeFolder,
-  onCollapseFolder,
   onHide,
   onShow,
   onFocusInGraph,
@@ -295,15 +278,30 @@ export default function FileExplorer({
   const itemRefs = useRef(new Map<string, HTMLDivElement>());
 
   const visualGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, hiddenIds),
-    [graph, explodedIds, explodedFolderPaths, hiddenIds]
+    () => Object.values(graphNodes).filter((node) => !node.hidden),
+    [graphNodes]
   );
-  const relationGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, new Set<string>()),
-    [graph, explodedIds, explodedFolderPaths]
-  );
-  const visibleNodeIds = useMemo(() => new Set(visualGraph.nodes.map((node) => node.id)), [visualGraph.nodes]);
-  const dependencyEdges = useMemo(() => relationGraph.edges.filter((edge) => !edge.isOriginEdge), [relationGraph.edges]);
+  const visibleNodeIds = useMemo(() => new Set(visualGraph.map((node) => node.id)), [visualGraph]);
+  const dependencyEdges = useMemo(() => Object.values(graphEdges), [graphEdges]);
+
+  const childByParent = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const node of Object.values(graphNodes)) {
+      if (!node.parentId) continue;
+      const children = map.get(node.parentId) ?? [];
+      children.push(node.id);
+      map.set(node.parentId, children);
+    }
+    return map;
+  }, [graphNodes]);
+
+  const hiddenById = useMemo(() => {
+    const hidden: Record<string, boolean> = {};
+    for (const node of Object.values(graphNodes)) {
+      hidden[node.id] = node.hidden;
+    }
+    return hidden;
+  }, [graphNodes]);
 
   const { itemById, parentById } = useMemo(() => {
     const itemMap = new Map<string, ExplorerItem>();
@@ -496,8 +494,8 @@ export default function FileExplorer({
     const isVisibleInGraph = visibleNodeIds.has(graphNodeId);
     const subtreeModules = collectSubtreeModuleIds(menuItem);
     const visibilityTargets = collectVisibilityTargets(menuItem);
-    const hasVisibleTargets = visibilityTargets.some((id) => !hiddenIds.has(id));
-    const hasHiddenTargets = visibilityTargets.some((id) => hiddenIds.has(id));
+    const hasVisibleTargets = visibilityTargets.some((id) => !hiddenById[id]);
+    const hasHiddenTargets = visibilityTargets.some((id) => hiddenById[id]);
 
     const expandableItems = subtreeItems.filter((item) => item.children.length > 0);
     const hasExpandedInTree = expandableItems.some((item) => expandedIds.has(item.id));
@@ -514,7 +512,7 @@ export default function FileExplorer({
       : false;
 
     const moduleIsPacked = menuItem.type === "entity" && menuItem.kind === "module" && graph
-      ? isEntityPacked(menuItem.entityId, graph, explodedIds, explodedFolderPaths)
+      ? isEntityPacked(menuItem.entityId, graph, childByParent, hiddenById)
       : false;
     const moduleCanPackUnpack = menuItem.type === "entity" && menuItem.kind === "module" && menuItem.children.length > 0;
 
@@ -523,13 +521,14 @@ export default function FileExplorer({
       const explodableEntities = collectExplodableEntityIds(menuItem);
       const allEntities = collectVisibilityTargets(menuItem);
 
-      const folderIsPacked = menuItem.path.length > 0 && !explodedFolderPaths.has(menuItem.path);
+      const folderChildren = childByParent.get(menuItem.id) ?? [];
+      const folderIsPacked = menuItem.path.length > 0 && folderChildren.length > 0 && folderChildren.every((id) => hiddenById[id]);
       if (hasChildren && folderIsPacked) {
         actions.push({
           id: "unpack",
           label: "Unpack",
           icon: <FolderOpen size={13} />,
-          onSelect: () => onExplodeFolder(menuItem.path),
+          onSelect: () => onExplode(menuItem.path),
         });
       }
       if (hasChildren && !folderIsPacked) {
@@ -537,17 +536,27 @@ export default function FileExplorer({
           id: "pack",
           label: "Pack",
           icon: <PackageOpen size={13} />,
-          onSelect: () => onCollapseFolder(menuItem.path),
+          onSelect: () => onCollapse(menuItem.path),
         });
       }
 
       const hasPackedModules = Boolean(
-        graph && subtreeModules.some((moduleId) => isEntityPacked(moduleId, graph, explodedIds, explodedFolderPaths))
+        graph && subtreeModules.some((moduleId) => isEntityPacked(moduleId, graph, childByParent, hiddenById))
       );
-      const hasUnpackedModules = subtreeModules.some((moduleId) => explodedIds.has(moduleId));
+      const hasUnpackedModules = subtreeModules.some((moduleId) => {
+        const children = childByParent.get(moduleId) ?? [];
+        return children.some((id) => !hiddenById[id]);
+      });
       const hasAnyUnpackedItems =
-        folderPaths.some((folderPath) => explodedFolderPaths.has(folderPath)) ||
-        explodableEntities.some((id) => explodedIds.has(id));
+        folderPaths.some((folderPath) => {
+          const folderId = `folder:${folderPath}`;
+          const children = childByParent.get(folderId) ?? [];
+          return children.some((id) => !hiddenById[id]);
+        }) ||
+        explodableEntities.some((id) => {
+          const children = childByParent.get(id) ?? [];
+          return children.some((childId) => !hiddenById[childId]);
+        });
 
       if (hasPackedModules) {
         actions.push({
@@ -556,7 +565,7 @@ export default function FileExplorer({
           icon: <FolderOpen size={13} />,
           onSelect: () => {
             for (const id of allEntities) onShow(id);
-            for (const folderPath of folderPaths) onExplodeFolder(folderPath);
+            for (const folderPath of folderPaths) onExplode(folderPath);
             for (const id of explodableEntities) onCollapse(id);
           },
         });
@@ -580,7 +589,7 @@ export default function FileExplorer({
         icon: <FolderOpen size={13} />,
         onSelect: () => {
           for (const id of allEntities) onShow(id);
-          for (const folderPath of folderPaths) onExplodeFolder(folderPath);
+          for (const folderPath of folderPaths) onExplode(folderPath);
           for (const id of explodableEntities) onExplode(id);
         },
       });
@@ -592,7 +601,7 @@ export default function FileExplorer({
           icon: <PackageOpen size={13} />,
           onSelect: () => {
             for (const id of explodableEntities) onCollapse(id);
-            for (const folderPath of folderPaths) onCollapseFolder(folderPath);
+            for (const folderPath of folderPaths) onCollapse(folderPath);
           },
         });
       }
@@ -693,7 +702,7 @@ export default function FileExplorer({
       });
     }
 
-    if (visualGraph.nodes.length > 1) {
+    if (visualGraph.length > 1) {
       actions.push({
         id: "isolate",
         label: "Isolate",
@@ -738,24 +747,23 @@ export default function FileExplorer({
     collectSubtreeModuleIds,
     dependencyEdges,
     expandedIds,
-    explodedFolderPaths,
-    explodedIds,
     graph,
-    hiddenIds,
+    childByParent,
+    hiddenById,
     menuItem,
     onCollapse,
-    onCollapseFolder,
+    onCollapse,
     onExplode,
     onFocusInGraph,
     onHide,
     onIsolate,
-    onExplodeFolder,
+    onExplode,
     onShowDependenciesOnly,
     onShowDependentsOnly,
     onShowMoreRelationships,
     onShow,
     visibleNodeIds,
-    visualGraph.nodes.length,
+    visualGraph.length,
     expandRecursively,
   ]);
 
@@ -768,15 +776,21 @@ export default function FileExplorer({
     const visibilityTargets = collectVisibilityTargets(item);
 
     const isPacked = item.type === "entity" && graph
-      ? isEntityPacked(item.entityId, graph, explodedIds, explodedFolderPaths)
+      ? isEntityPacked(item.entityId, graph, childByParent, hiddenById)
       : false;
-    const isHidden = visibilityTargets.length > 0 && visibilityTargets.every((id) => hiddenIds.has(id));
+    const isHidden = visibilityTargets.length > 0 && visibilityTargets.every((id) => hiddenById[id]);
     const canToggleVisibility = item.type === "folder" || !isPacked;
 
     const hasExplodable = hasChildren && (item.type === "folder" || item.canExplode);
     const hasExploded = item.type === "folder"
-      ? explodedFolderPaths.has(item.path)
-      : explodedIds.has(item.entityId);
+      ? (() => {
+        const children = childByParent.get(item.id) ?? [];
+        return children.some((id) => !hiddenById[id]);
+      })()
+      : (() => {
+        const children = childByParent.get(item.entityId) ?? [];
+        return children.some((id) => !hiddenById[id]);
+      })();
 
     const onToggleVisibility = () => {
       if (isHidden) {
@@ -789,8 +803,8 @@ export default function FileExplorer({
     const onToggleExplode = () => {
       if (!hasExplodable) return;
       if (item.type === "folder") {
-        if (hasExploded) onCollapseFolder(item.path);
-        else onExplodeFolder(item.path);
+        if (hasExploded) onCollapse(item.path);
+        else onExplode(item.path);
         return;
       }
 

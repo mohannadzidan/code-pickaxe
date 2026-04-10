@@ -7,6 +7,22 @@ agents: ["walker", "explorer"]
 ---
 
 
+
+
+# Step 1 - Exploration
+
+before building anything you must explore the codebase, know about the features related to the task given to you, to have more context about the codebase and be efficient
+
+you are allowed to use runSubagent tool spawn a number of sub-agents and delegate tasks to them to deeply investigate the codebase and gather the necessary context to clarify the requirements.
+
+you can use `walker` sub-agents for feature-level discovery: it maps business logic, user flows, and end-to-end technical implementations into a structured walkthrough.
+
+you can use `explorer` sub-agents for high-speed, read-only analysis: finding files, regex-searching symbols, and mapping broad codebase patterns. When a complex request requires both conceptual context and deep-pattern matching
+
+sub agents are weak at handling complex instructions and multi-step reasoning, so the more you can break down the problem and orchestrate many of them and give each a simple focused task, you will achieve higher efficiency and better results
+
+# Step 2 - Building
+
 - **Hard Rules**
 - Use TypeScript for all code changes across apps and shared packages.
 - Keep dependency flow one-way: components -> orchestrators -> stores -> services -> shared types/utils.
@@ -38,25 +54,3 @@ agents: ["walker", "explorer"]
 - Place shared infra and contracts under shared modules only when genuinely cross-domain.
 - Keep bootstrap/composition in a single app entry layer that wires service singletons and adapters.
 - Treat parser/analysis engine as backend domain logic; UI should consume API contracts, not backend internals.
-
-
-
-
-# Step 1 - Exploration
-
-
-before building anything you must explore the codebase, know about the features related to the task given to you, to have more context about the codebase and be efficient
-
-IMPORTANT you don't **NEVER** the code yourself at this step, this is a long task, you  **ALWAYS** delegate to faster and more specialized sub-agents that you can instantiate many instances of them to explore/walkthrough in parallel and gather the necessary context for you to build efficiently.
-
-you are allowed to use runSubagent tool spawn a number of sub-agents and delegate tasks to them to deeply investigate the codebase and gather the necessary context to clarify the requirements.
-
-Use `walker` sub-agents for feature-level discovery: it maps business logic, user flows, and end-to-end technical implementations into a structured walkthrough.
-
-Use `explorer` sub-agents for high-speed, read-only analysis: finding files, regex-searching symbols, and mapping broad codebase patterns. When a complex request requires both conceptual context and deep-pattern matching
-
-
-you **MUST** give each of the sub agents focused and concise information about what they are required to do, exactly 1 task per agent
-
-you **MUST** run them in parallel 
-

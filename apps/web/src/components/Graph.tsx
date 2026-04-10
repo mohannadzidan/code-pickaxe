@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   Controls,
@@ -12,39 +12,36 @@ import {
   type EdgeTypes,
   type Node,
   type NodeTypes,
-} from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
-import { trpc } from "@/utils/trpc";
-import type { CodeDefinition } from "@api/parsing/types";
-import FileNode, { type FileNodeData } from "./FileNode";
-import FloatingEdge from "./FloatingEdge";
-import ContextMenu from "./ContextMenu";
-import type { ContextMenuAction } from "./ContextMenu";
-import CodePane from "./CodePane";
-import FileExplorer from "./FileExplorer";
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { trpc } from '@/utils/trpc';
+import type { CodeDefinition } from '@api/parsing/types';
+import FileNode, { type FileNodeData } from './FileNode';
+import FloatingEdge from './FloatingEdge';
+import ContextMenu from './ContextMenu';
+import type { ContextMenuAction } from './ContextMenu';
+import CodePane from './CodePane';
+import FileExplorer from './FileExplorer';
 import {
   useGraphStore,
-  selectExplodedFolderPaths,
-  selectExplodedIds,
   selectGraphData,
-  selectHiddenIds,
+  selectEdges,
   selectLayoutDirection,
-  selectNodePositions,
-} from "@/features/graph/store/graphStore";
-import { selectSelectedEntityId, useSelectionStore } from "@/features/selection/store/selectionStore";
-import { selectExplorerPaneWidth, selectPaneWidth, useUiStore } from "@/shared/store/uiStore";
-import { services } from "@/app/bootstrap";
-import { loadGraph } from "@/orchestrators/loadGraph";
-import { selectEntity } from "@/orchestrators/selectEntity";
-import { navigateToEdgeSource } from "@/orchestrators/navigateToEdgeSource";
-import { fromFolderNodeId, isModuleInsideFolder } from "@/features/graph/services/folderPath";
-import {
-  selectKeyboardShortcuts,
-  shortcutMatchesKeyboardEvent,
-  useKeyboardShortcutStore,
-} from "@/shared/store/keyboardShortcutStore";
-import SettingsPopup from "./SettingsPopup";
-import { Box, Crosshair, EyeOff, PackageOpen, ScanLine, Search, Target } from "lucide-react";
+  selectNodes,
+  selectNodesList,
+} from '@/features/graph/store/graphStore';
+import { selectSelectedEntityId, useSelectionStore } from '@/features/selection/store/selectionStore';
+import { selectExplorerPaneWidth, selectPaneWidth, useUiStore } from '@/shared/store/uiStore';
+import { services } from '@/app/bootstrap';
+import { loadGraph } from '@/orchestrators/loadGraph';
+import { selectEntity } from '@/orchestrators/selectEntity';
+import { navigateToEdgeSource } from '@/orchestrators/navigateToEdgeSource';
+import { fromFolderNodeId, isModuleInsideFolder } from '@/features/graph/services/folderPath';
+import { selectKeyboardShortcuts, shortcutMatchesKeyboardEvent, useKeyboardShortcutStore } from '@/shared/store/keyboardShortcutStore';
+import SettingsPopup from './SettingsPopup';
+import { Crosshair, EyeOff, PackageOpen, Search, Target } from 'lucide-react';
+import { useShallow } from 'zustand/shallow';
+import { GraphState } from '@/shared/types/domain';
 
 const nodeTypes: NodeTypes = { file: FileNode };
 const edgeTypes: EdgeTypes = { floating: FloatingEdge };
@@ -67,32 +64,10 @@ type LayoutFlowProps = {
   focusRequest: { nodeId: string; token: number } | null;
 };
 
-const isEntityPacked = (
-  entityId: string,
-  graph: NonNullable<ReturnType<typeof selectGraphData>>,
-  explodedIds: Set<string>,
-  explodedFolderPaths: Set<string>
-): boolean => {
-  const entity = graph.entities[entityId];
-  if (entity?.children.length && !explodedIds.has(entityId)) return true;
-
-  let current = graph.entities[entityId];
-
-  while (current?.parent) {
-    if (!explodedIds.has(current.parent)) return true;
-    current = graph.entities[current.parent];
-  }
-
-  const moduleId = current?.id ?? entityId;
-  const moduleFolderPath = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
-  let cursor = moduleFolderPath;
-  while (cursor) {
-    if (!explodedFolderPaths.has(cursor)) return true;
-    const idx = cursor.lastIndexOf("/");
-    cursor = idx >= 0 ? cursor.slice(0, idx) : "";
-  }
-
-  return false;
+const isEntityPacked = (nodes: GraphState['nodes'], entityId: string): boolean => {
+  const entity = nodes[entityId];
+  if (!entity) return false;
+  return nodes[entityId].hidden === false || nodes[entityId].children.every((childId) => nodes[childId]?.hidden === true);
 };
 
 function LayoutFlow({
@@ -104,81 +79,64 @@ function LayoutFlow({
   onOpenSettings,
   focusRequest,
 }: LayoutFlowProps) {
-  const graphData = useGraphStore(selectGraphData);
-  const hiddenIds = useGraphStore(selectHiddenIds);
-  const explodedIds = useGraphStore(selectExplodedIds);
-  const explodedFolderPaths = useGraphStore(selectExplodedFolderPaths);
-  const visualGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graphData, explodedIds, explodedFolderPaths, hiddenIds),
-    [graphData, explodedIds, explodedFolderPaths, hiddenIds]
-  );
-  const relationVisualGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graphData, explodedIds, explodedFolderPaths, new Set<string>()),
-    [graphData, explodedIds, explodedFolderPaths]
-  );
-  const positions = useGraphStore(selectNodePositions);
+  const reactFlow = useReactFlow();
+  const graphNodes = useGraphStore(selectNodes);
+  const graphEdges = useGraphStore(selectEdges);
+  const nodesList = useGraphStore(useShallow(selectNodesList));
   const selectedEntityId = useSelectionStore(selectSelectedEntityId);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
-  const reactFlow = useReactFlow();
-
   const explodeEntity = useGraphStore((s) => s.explodeEntity);
   const collapseEntity = useGraphStore((s) => s.collapseEntity);
-  const explodeFolder = useGraphStore((s) => s.explodeFolder);
-  const collapseFolder = useGraphStore((s) => s.collapseFolder);
   const hideEntity = useGraphStore((s) => s.hideEntity);
   const setNodePosition = useGraphStore((s) => s.setNodePosition);
   const graph = useGraphStore((s) => s.graph);
   const setNodePositions = useGraphStore((s) => s.setNodePositions);
   const simulationRef = useRef(services.simulationService);
 
-  const nodes: Node<FileNodeData>[] = visualGraph.nodes.map((node) => ({
+  const nearestVisibleParent = (nodeId: string): string | null => {
+    const node = graphNodes[nodeId];
+    if (!node) return null;
+    if (!node.hidden) return node.id;
+    if (!node.parentId) return null;
+    return nearestVisibleParent(node.parentId);
+  };
+
+  const nodes: Node<FileNodeData>[] = Object.values(graphNodes).map((node) => ({
     id: node.id,
-    type: "file",
-    position: positions[node.id] ?? { x: 0, y: 0 },
+    type: 'file',
+    position: node.position,
+
     data: {
-      id: node.id,
-      label: node.label,
-      kind: node.kind,
-      subKind: node.subKind,
-      filePath: node.filePath,
-      modulePath: node.modulePath,
-      isExternal: node.isExternal,
+      ...node,
+      modulePath: node.showParentLabel ? node.parentLabel : undefined,
       isSelected: node.id === selectedEntityId,
       onSelectNode: (entityId: string) => {
         selectEntity(entityId);
         onRevealInExplorer(entityId);
       },
     },
-    style: { width: "auto", height: node.modulePath && node.kind !== "module" ? 48 : 36 },
+    style: { width: 'auto', height: node.showParentLabel ? 48 : 36 },
   }));
 
-  const edges: Edge[] = visualGraph.edges.map((edge) => {
-    if (edge.isOriginEdge) {
+  const edges: Edge[] = Object.values(graphEdges)
+    .map((edge) => {
+      // nearest visible parent
       return {
         id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        type: "straight",
-        style: { stroke: "#94a3b8", strokeWidth: 1, strokeDasharray: "6 4", opacity: 0.75 },
-        selectable: false,
+        source: nearestVisibleParent(edge.source),
+        target: nearestVisibleParent(edge.target),
+        type: 'floating',
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
+        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+        label: edge.label,
+        data: {
+          firstUsageLoc: edge.code,
+          onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
+        },
       };
-    }
-
-    return {
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      type: "floating",
-      markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8", width: 14, height: 14 },
-      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
-      label: edge.label,
-      data: {
-        firstUsageLoc: edge.firstUsageLoc,
-        onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
-      },
-    };
-  });
+    })
+    .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -193,16 +151,15 @@ function LayoutFlow({
   }, [setNodePositions]);
 
   useEffect(() => {
-    const positionsSnapshot = useGraphStore.getState().nodePositions;
     simulationRef.current.syncGraph(
-      visualGraph.nodes.map((node) => ({
+      nodes.map((node) => ({
         id: node.id,
-        x: positionsSnapshot[node.id]?.x ?? 0,
-        y: positionsSnapshot[node.id]?.y ?? 0,
+        x: node.position.x,
+        y: node.position.y,
       })),
-      visualGraph.topLinks
+      edges
     );
-  }, [visualGraph]);
+  }, [nodes, edges]);
 
   useEffect(() => {
     if (!focusRequest) return;
@@ -214,21 +171,24 @@ function LayoutFlow({
     });
   }, [focusRequest, reactFlow]);
 
-  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
-    event.preventDefault();
-    selectEntity(node.id);
-    onRevealInExplorer(node.id);
-    const pane = flowRef.current?.getBoundingClientRect();
-    if (!pane) return;
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      selectEntity(node.id);
+      onRevealInExplorer(node.id);
+      const pane = flowRef.current?.getBoundingClientRect();
+      if (!pane) return;
 
-    setMenu({
-      nodeId: node.id,
-      top: event.clientY < pane.height - 160 ? event.clientY - pane.top : false,
-      left: event.clientX < pane.width - 170 ? event.clientX - pane.left : false,
-      right: event.clientX >= pane.width - 170 ? pane.width - (event.clientX - pane.left) : false,
-      bottom: event.clientY >= pane.height - 160 ? pane.height - (event.clientY - pane.top) : false,
-    });
-  }, [onRevealInExplorer]);
+      setMenu({
+        nodeId: node.id,
+        top: event.clientY < pane.height - 160 ? event.clientY - pane.top : false,
+        left: event.clientX < pane.width - 170 ? event.clientX - pane.left : false,
+        right: event.clientX >= pane.width - 170 ? pane.width - (event.clientX - pane.left) : false,
+        bottom: event.clientY >= pane.height - 160 ? pane.height - (event.clientY - pane.top) : false,
+      });
+    },
+    [onRevealInExplorer]
+  );
 
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -238,35 +198,24 @@ function LayoutFlow({
     [setNodePosition]
   );
 
-  const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
-      simulationRef.current.releaseNode(node.id, node.position);
-      simulationRef.current.reheat(0.5);
-    },
-    []
-  );
+  const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
+    simulationRef.current.releaseNode(node.id, node.position);
+    simulationRef.current.reheat(0.5);
+  }, []);
 
   const onReheat = useCallback(() => {
     simulationRef.current.reheat(0.8);
   }, []);
 
-  const menuNode = useMemo(
-    () => (menu ? visualGraph.nodes.find((node) => node.id === menu.nodeId) ?? null : null),
-    [menu, visualGraph.nodes]
-  );
+  const menuNode = useMemo(() => (menu ? (nodesList.find((node) => node.id === menu.nodeId) ?? null) : null), [menu, nodesList]);
 
-  const dependencyEdges = useMemo(
-    () => relationVisualGraph.edges.filter((edge) => !edge.isOriginEdge),
-    [relationVisualGraph.edges]
-  );
-
-  const visibleNodeCount = visualGraph.nodes.length;
+  const visibleNodeCount = nodesList.length;
 
   const menuHasChildren = useMemo(() => {
     if (!menuNode || !graph) return false;
 
-    if (menuNode.kind === "folder") {
-      const folderPath = menuNode.id.slice("folder:".length);
+    if (menuNode.kind === 'folder') {
+      const folderPath = menuNode.id.slice('folder:'.length);
       return graph.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath));
     }
 
@@ -275,64 +224,38 @@ function LayoutFlow({
   }, [graph, menuNode]);
 
   const menuIsPacked = useMemo(() => {
-    if (!menuNode || !graph) return false;
-    if (menuNode.kind === "folder") {
-      const folderPath = menuNode.id.slice("folder:".length);
-      return folderPath.length > 0 && !explodedFolderPaths.has(folderPath);
-    }
-    const entity = graph.entities[menuNode.id];
-    if (!entity) return false;
-    return isEntityPacked(menuNode.id, graph, explodedIds, explodedFolderPaths);
-  }, [explodedFolderPaths, explodedIds, graph, menuNode]);
+    if (!menuNode) return false;
+    return menuNode.hidden === false || menuNode.children.every((childId) => graphNodes[childId]?.hidden === true);
+  }, [graphNodes, menuNode]);
 
   const menuPackIntoModuleId = useMemo(() => {
-    if (!graph || !menuNode || menuNode.kind === "folder" || menuNode.kind === "module") return null;
+    if (!graph || !menuNode || menuNode.kind === 'folder' || menuNode.kind === 'module') return null;
 
-    let current: (typeof graph.entities)[string] | undefined = graph.entities[menuNode.id];
-    while (current) {
-      if (current.kind === "module") {
-        return explodedIds.has(current.id) ? current.id : null;
-      }
-      current = current.parent ? graph.entities[current.parent] : undefined;
-    }
+    // let current: (typeof graph.entities)[string] | undefined = graph.entities[menuNode.id];
+    // while (current) {
+    //   if (current.kind === 'module') {
+    //     const moduleChildren = childByParent.get(current.id) ?? [];
+    //     const isExpanded = moduleChildren.some((childId) => !hiddenById[childId]);
+    //     return isExpanded ? current.id : null;
+    //   }
+    //   current = current.parent ? graph.entities[current.parent] : undefined;
+    // }
 
     return null;
-  }, [explodedIds, graph, menuNode]);
-
-  const menuCanShowDependencies = useMemo(() => {
-    if (!menuNode || (menuNode.kind !== "module" && menuNode.kind !== "class" && menuNode.kind !== "function" && menuNode.kind !== "variable" && menuNode.kind !== "method" && menuNode.kind !== "property" && menuNode.kind !== "code-block")) {
-      return false;
-    }
-    return dependencyEdges.some((edge) => edge.source === menuNode.id);
-  }, [dependencyEdges, menuNode]);
-
-  const menuCanShowDependents = useMemo(() => {
-    if (!menuNode || (menuNode.kind !== "module" && menuNode.kind !== "class" && menuNode.kind !== "function" && menuNode.kind !== "variable" && menuNode.kind !== "method" && menuNode.kind !== "property" && menuNode.kind !== "code-block")) {
-      return false;
-    }
-    return dependencyEdges.some((edge) => edge.target === menuNode.id);
-  }, [dependencyEdges, menuNode]);
+  }, [graph, menuNode]);
 
   const onMenuExplode = useCallback(
     (id: string) => {
-      if (id.startsWith("folder:")) {
-        explodeFolder(id.slice("folder:".length));
-        return;
-      }
       explodeEntity(id);
     },
-    [explodeEntity, explodeFolder]
+    [explodeEntity]
   );
 
   const onMenuCollapse = useCallback(
     (id: string) => {
-      if (id.startsWith("folder:")) {
-        collapseFolder(id.slice("folder:".length));
-        return;
-      }
       collapseEntity(id);
     },
-    [collapseEntity, collapseFolder]
+    [collapseEntity]
   );
 
   const onMenuHide = useCallback(
@@ -358,8 +281,8 @@ function LayoutFlow({
 
     if (menuNode && menuHasChildren && menuIsPacked) {
       actions.push({
-        id: "unpack",
-        label: "Unpack",
+        id: 'unpack',
+        label: 'Unpack',
         icon: <Search size={13} />,
         onSelect: () => onMenuExplode(menu.nodeId),
       });
@@ -367,8 +290,8 @@ function LayoutFlow({
 
     if (menuNode && menuHasChildren && !menuIsPacked) {
       actions.push({
-        id: "pack",
-        label: "Pack",
+        id: 'pack',
+        label: 'Pack',
         icon: <PackageOpen size={13} />,
         onSelect: () => onMenuCollapse(menu.nodeId),
       });
@@ -376,139 +299,40 @@ function LayoutFlow({
 
     if (menuPackIntoModuleId) {
       actions.push({
-        id: "pack-into-module",
-        label: "Pack",
+        id: 'pack-into-module',
+        label: 'Pack',
         icon: <PackageOpen size={13} />,
         onSelect: () => onMenuCollapse(menuPackIntoModuleId),
       });
     }
 
-    if (menuNode?.kind === "folder") {
-      const folderPath = menuNode.id.slice("folder:".length);
-      const hasPackedModules = graph?.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath) && isEntityPacked(moduleId, graph, explodedIds, explodedFolderPaths));
-      const hasUnpackedModules = graph?.modules.some((moduleId) => {
-        if (!isModuleInsideFolder(moduleId, folderPath)) return false;
-        const moduleEntity = graph.entities[moduleId];
-        if (!moduleEntity || moduleEntity.children.length === 0) return false;
-        return explodedIds.has(moduleId);
-      });
-
-      if (hasPackedModules) {
-        actions.push({
-          id: "unpack-all-modules",
-          label: "Unpack all to modules",
-          icon: <Search size={13} />,
-          onSelect: () => {
-            if (!graph) return;
-            for (const moduleId of graph.modules) {
-              if (!isModuleInsideFolder(moduleId, folderPath)) continue;
-              const moduleFolder = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
-              let cursor = moduleFolder;
-              while (cursor) {
-                onMenuExplode(`folder:${cursor}`);
-                const idx = cursor.lastIndexOf("/");
-                cursor = idx >= 0 ? cursor.slice(0, idx) : "";
-              }
-            }
-          },
-        });
-      }
-
-      if (hasUnpackedModules) {
-        actions.push({
-          id: "pack-all-modules",
-          label: "Pack all to modules",
-          icon: <PackageOpen size={13} />,
-          onSelect: () => {
-            if (!graph) return;
-            for (const moduleId of graph.modules) {
-              if (!isModuleInsideFolder(moduleId, folderPath)) continue;
-              onMenuCollapse(moduleId);
-            }
-          },
-        });
-      }
-
-      actions.push({
-        id: "unpack-all-entities",
-        label: "Unpack all to entities",
-        icon: <Box size={13} />,
-        onSelect: () => {
-          if (!graph) return;
-          for (const moduleId of graph.modules) {
-            if (!isModuleInsideFolder(moduleId, folderPath)) continue;
-            const moduleFolder = moduleId.includes("/") ? moduleId.slice(0, moduleId.lastIndexOf("/")) : "";
-            let cursor = moduleFolder;
-            while (cursor) {
-              onMenuExplode(`folder:${cursor}`);
-              const idx = cursor.lastIndexOf("/");
-              cursor = idx >= 0 ? cursor.slice(0, idx) : "";
-            }
-            onMenuExplode(moduleId);
-          }
-        },
-      });
-    }
-
     actions.push({
-      id: "hide",
-      label: "Hide",
+      id: 'hide',
+      label: 'Hide',
       icon: <EyeOff size={13} />,
       onSelect: () => onMenuHide(menu.nodeId),
     });
 
     actions.push({
-      id: "reveal-explorer",
-      label: "Reveal in explorer",
+      id: 'reveal-explorer',
+      label: 'Reveal in explorer',
       icon: <Crosshair size={13} />,
       onSelect: () => onRevealInExplorer(menu.nodeId),
     });
 
     if (visibleNodeCount > 1) {
       actions.push({
-        id: "isolate",
-        label: "Isolate",
+        id: 'isolate',
+        label: 'Isolate',
         icon: <Target size={13} />,
         onSelect: () => onIsolate(menu.nodeId),
       });
     }
 
-    if (menuCanShowDependencies) {
-      actions.push({
-        id: "show-dependencies-only",
-        label: "Show dependencies only",
-        icon: <ScanLine size={13} />,
-        onSelect: () => onShowDependenciesOnly(menu.nodeId),
-      });
-    }
-
-    if (menuCanShowDependents) {
-      actions.push({
-        id: "show-dependents-only",
-        label: "Show dependents only",
-        icon: <ScanLine size={13} />,
-        onSelect: () => onShowDependentsOnly(menu.nodeId),
-      });
-    }
-
-    if (menuCanShowDependencies || menuCanShowDependents) {
-      actions.push({
-        id: "show-more-relationships",
-        label: "Show more relationships",
-        icon: <ScanLine size={13} />,
-        onSelect: () => onShowMoreRelationships(menu.nodeId),
-      });
-    }
-
     return actions;
   }, [
-    dependencyEdges,
-    explodedFolderPaths,
-    explodedIds,
     graph,
     menu,
-    menuCanShowDependencies,
-    menuCanShowDependents,
     menuHasChildren,
     menuIsPacked,
     menuPackIntoModuleId,
@@ -523,11 +347,11 @@ function LayoutFlow({
     onShowDependentsOnly,
     visibleNodeCount,
   ]);
-
+  // console.log(nodes.filter((node) => !node.data.hidden), edges, graphEdges)
   return (
     <div ref={flowRef} className="w-full h-full">
       <ReactFlow
-        nodes={nodes}
+        nodes={nodes.filter((node) => !node.data.hidden)}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -547,13 +371,7 @@ function LayoutFlow({
           <LayoutButtons onReheat={onReheat} onOpenSettings={onOpenSettings} />
         </Panel>
 
-        {menu && (
-          <ContextMenu
-            {...menu}
-            actions={menuActions}
-            onClose={closeMenu}
-          />
-        )}
+        {menu && <ContextMenu {...menu} actions={menuActions} onClose={closeMenu} />}
       </ReactFlow>
     </div>
   );
@@ -572,15 +390,15 @@ function LayoutButtons({ onReheat, onOpenSettings }: LayoutButtonsProps) {
     <div className="flex gap-1.5">
       <button
         className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
-        style={{ border: `1px solid ${direction === "TB" ? "#94a3b8" : "#e2e8f0"}` }}
-        onClick={() => setLayoutDirection("TB")}
+        style={{ border: `1px solid ${direction === 'TB' ? '#94a3b8' : '#e2e8f0'}` }}
+        onClick={() => setLayoutDirection('TB')}
       >
         Vertical Layout
       </button>
       <button
         className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
-        style={{ border: `1px solid ${direction === "LR" ? "#94a3b8" : "#e2e8f0"}` }}
-        onClick={() => setLayoutDirection("LR")}
+        style={{ border: `1px solid ${direction === 'LR' ? '#94a3b8' : '#e2e8f0'}` }}
+        onClick={() => setLayoutDirection('LR')}
       >
         Horizontal Layout
       </button>
@@ -601,15 +419,13 @@ export default function Graph() {
   const paneWidth = useUiStore(selectPaneWidth);
   const setPaneWidth = useUiStore((s) => s.setPaneWidth);
   const graph = useGraphStore(selectGraphData);
-  const explodedIds = useGraphStore(selectExplodedIds);
-  const explodedFolderPaths = useGraphStore(selectExplodedFolderPaths);
-  const hiddenIds = useGraphStore(selectHiddenIds);
+  const graphNodes = useGraphStore(selectNodes);
+  const graphEdges = useGraphStore(selectEdges);
+  const relationEdges = useMemo(() => Object.values(graphEdges), [graphEdges]);
   const selectedEntityId = useSelectionStore(selectSelectedEntityId);
   const keyboardShortcuts = useKeyboardShortcutStore(selectKeyboardShortcuts);
   const explodeEntity = useGraphStore((s) => s.explodeEntity);
   const collapseEntity = useGraphStore((s) => s.collapseEntity);
-  const explodeFolder = useGraphStore((s) => s.explodeFolder);
-  const collapseFolder = useGraphStore((s) => s.collapseFolder);
   const hideEntity = useGraphStore((s) => s.hideEntity);
   const showEntity = useGraphStore((s) => s.showEntity);
   const applyVisibilityMask = useGraphStore((s) => s.applyVisibilityMask);
@@ -629,120 +445,156 @@ export default function Graph() {
     }
   }, [query.data]);
 
+  const childByParent = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const node of Object.values(graphNodes)) {
+      if (!node.parentId) continue;
+      const children = map.get(node.parentId) ?? [];
+      children.push(node.id);
+      map.set(node.parentId, children);
+    }
+    return map;
+  }, [graphNodes]);
 
-  const relationGraph = useMemo(
-    () => services.graphProjectionService.buildVisualGraph(graph, explodedIds, explodedFolderPaths, new Set<string>()),
-    [graph, explodedIds, explodedFolderPaths]
+  const hiddenById = useMemo(() => {
+    const hidden: Record<string, boolean> = {};
+    for (const node of Object.values(graphNodes)) {
+      hidden[node.id] = node.hidden;
+    }
+    return hidden;
+  }, [graphNodes]);
+
+  const folderIsPacked = useCallback(
+    (folderId: string) => {
+      const children = childByParent.get(folderId) ?? [];
+      return children.length > 0 && children.every((childId) => hiddenById[childId]);
+    },
+    [childByParent, hiddenById]
   );
-  const relationEdges = useMemo(
-    () => relationGraph.edges.filter((edge) => !edge.isOriginEdge),
-    [relationGraph.edges]
+  const resolveSeedIds = useCallback(
+    (nodeId: string): Set<string> => {
+      if (!graph) return new Set<string>([nodeId]);
+
+      const folderPath = fromFolderNodeId(nodeId);
+      if (!folderPath) return new Set<string>([nodeId]);
+
+      const seeds = new Set<string>();
+      for (const moduleId of graph.modules) {
+        if (isModuleInsideFolder(moduleId, folderPath)) {
+          seeds.add(moduleId);
+        }
+      }
+      return seeds;
+    },
+    [graph]
   );
 
-  const resolveSeedIds = useCallback((nodeId: string): Set<string> => {
-    if (!graph) return new Set<string>([nodeId]);
+  const resolveRelatedIds = useCallback(
+    (nodeId: string, direction: 'outgoing' | 'incoming' | 'both'): Set<string> => {
+      const seeds = resolveSeedIds(nodeId);
+      const related = new Set<string>();
 
-    const folderPath = fromFolderNodeId(nodeId);
-    if (!folderPath) return new Set<string>([nodeId]);
+      for (const edge of relationEdges) {
+        const sourceMatches = seeds.has(edge.source);
+        const targetMatches = seeds.has(edge.target);
 
-    const seeds = new Set<string>();
-    for (const moduleId of graph.modules) {
-      if (isModuleInsideFolder(moduleId, folderPath)) {
-        seeds.add(moduleId);
+        if ((direction === 'outgoing' || direction === 'both') && sourceMatches) {
+          related.add(edge.target);
+        }
+        if ((direction === 'incoming' || direction === 'both') && targetMatches) {
+          related.add(edge.source);
+        }
       }
-    }
-    return seeds;
-  }, [graph]);
 
-  const resolveRelatedIds = useCallback((nodeId: string, direction: "outgoing" | "incoming" | "both"): Set<string> => {
-    const seeds = resolveSeedIds(nodeId);
-    const related = new Set<string>();
+      return related;
+    },
+    [relationEdges, resolveSeedIds]
+  );
 
-    for (const edge of relationEdges) {
-      const sourceMatches = seeds.has(edge.source);
-      const targetMatches = seeds.has(edge.target);
+  const addEntityAncestors = useCallback(
+    (ids: Set<string>): Set<string> => {
+      if (!graph) return ids;
 
-      if ((direction === "outgoing" || direction === "both") && sourceMatches) {
-        related.add(edge.target);
+      const next = new Set(ids);
+      for (const id of Array.from(ids)) {
+        if (id.startsWith('external:')) continue;
+        let current = graph.entities[id];
+        while (current?.parent) {
+          next.add(current.parent);
+          current = graph.entities[current.parent];
+        }
       }
-      if ((direction === "incoming" || direction === "both") && targetMatches) {
-        related.add(edge.source);
-      }
-    }
 
-    return related;
-  }, [relationEdges, resolveSeedIds]);
+      return next;
+    },
+    [graph]
+  );
 
-  const addEntityAncestors = useCallback((ids: Set<string>): Set<string> => {
-    if (!graph) return ids;
+  const setVisibilityByIds = useCallback(
+    (visibleIds: Set<string>) => {
+      if (!graph) return;
 
-    const next = new Set(ids);
-    for (const id of Array.from(ids)) {
-      if (id.startsWith("external:")) continue;
-      let current = graph.entities[id];
-      while (current?.parent) {
-        next.add(current.parent);
-        current = graph.entities[current.parent];
-      }
-    }
-
-    return next;
-  }, [graph]);
-
-  const setVisibilityByIds = useCallback((visibleIds: Set<string>) => {
-    if (!graph) return;
-
-    const withAncestors = addEntityAncestors(visibleIds);
-    applyVisibilityMask(withAncestors);
-  }, [addEntityAncestors, applyVisibilityMask, graph]);
+      const withAncestors = addEntityAncestors(visibleIds);
+      applyVisibilityMask(withAncestors);
+    },
+    [addEntityAncestors, applyVisibilityMask, graph]
+  );
 
   const currentlyVisibleIds = useMemo(() => {
-    if (!graph) return new Set<string>();
-
     const ids = new Set<string>();
-    for (const id of Object.keys(graph.entities)) {
-      if (!hiddenIds.has(id)) ids.add(id);
-    }
-    for (const ext of graph.externalModules) {
-      const extId = `external:${ext.moduleSpecifier}`;
-      if (!hiddenIds.has(extId)) ids.add(extId);
+    for (const node of Object.values(graphNodes)) {
+      if (!node.hidden && node.kind !== 'folder') {
+        ids.add(node.id);
+      }
     }
     return ids;
-  }, [graph, hiddenIds]);
+  }, [graphNodes]);
 
-  const onIsolate = useCallback((nodeId: string) => {
-    const keepIds = resolveSeedIds(nodeId);
-    for (const relatedId of resolveRelatedIds(nodeId, "both")) {
-      keepIds.add(relatedId);
-    }
+  const onIsolate = useCallback(
+    (nodeId: string) => {
+      const keepIds = resolveSeedIds(nodeId);
+      for (const relatedId of resolveRelatedIds(nodeId, 'both')) {
+        keepIds.add(relatedId);
+      }
 
-    setVisibilityByIds(keepIds);
-  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+      setVisibilityByIds(keepIds);
+    },
+    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
+  );
 
-  const onShowDependenciesOnly = useCallback((nodeId: string) => {
-    const keepIds = resolveSeedIds(nodeId);
-    for (const relatedId of resolveRelatedIds(nodeId, "outgoing")) {
-      keepIds.add(relatedId);
-    }
-    setVisibilityByIds(keepIds);
-  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+  const onShowDependenciesOnly = useCallback(
+    (nodeId: string) => {
+      const keepIds = resolveSeedIds(nodeId);
+      for (const relatedId of resolveRelatedIds(nodeId, 'outgoing')) {
+        keepIds.add(relatedId);
+      }
+      setVisibilityByIds(keepIds);
+    },
+    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
+  );
 
-  const onShowDependentsOnly = useCallback((nodeId: string) => {
-    const keepIds = resolveSeedIds(nodeId);
-    for (const relatedId of resolveRelatedIds(nodeId, "incoming")) {
-      keepIds.add(relatedId);
-    }
-    setVisibilityByIds(keepIds);
-  }, [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]);
+  const onShowDependentsOnly = useCallback(
+    (nodeId: string) => {
+      const keepIds = resolveSeedIds(nodeId);
+      for (const relatedId of resolveRelatedIds(nodeId, 'incoming')) {
+        keepIds.add(relatedId);
+      }
+      setVisibilityByIds(keepIds);
+    },
+    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
+  );
 
-  const onShowMoreRelationships = useCallback((nodeId: string) => {
-    const keepIds = new Set<string>(currentlyVisibleIds);
-    keepIds.add(nodeId);
-    for (const relatedId of resolveRelatedIds(nodeId, "both")) {
-      keepIds.add(relatedId);
-    }
-    setVisibilityByIds(keepIds);
-  }, [currentlyVisibleIds, resolveRelatedIds, setVisibilityByIds]);
+  const onShowMoreRelationships = useCallback(
+    (nodeId: string) => {
+      const keepIds = new Set<string>(currentlyVisibleIds);
+      keepIds.add(nodeId);
+      for (const relatedId of resolveRelatedIds(nodeId, 'both')) {
+        keepIds.add(relatedId);
+      }
+      setVisibilityByIds(keepIds);
+    },
+    [currentlyVisibleIds, resolveRelatedIds, setVisibilityByIds]
+  );
 
   const onFocusInGraph = useCallback((nodeId: string) => {
     setFocusRequest({ nodeId, token: Date.now() });
@@ -759,26 +611,29 @@ export default function Graph() {
     const visibleIds = new Set<string>(Object.keys(graph.entities));
     for (const ext of graph.externalModules) {
       const extId = `external:${ext.moduleSpecifier}`;
-      if (!hiddenIds.has(extId)) {
+      if (!hiddenById[extId]) {
         visibleIds.add(extId);
       }
     }
 
     applyVisibilityMask(visibleIds);
-  }, [applyVisibilityMask, graph, hiddenIds]);
+  }, [applyVisibilityMask, graph, hiddenById]);
 
-  const hideNodeById = useCallback((nodeId: string) => {
-    const folderPath = fromFolderNodeId(nodeId);
-    if (!folderPath || !graph) {
-      hideEntity(nodeId);
-      return;
-    }
+  const hideNodeById = useCallback(
+    (nodeId: string) => {
+      const folderPath = fromFolderNodeId(nodeId);
+      if (!folderPath || !graph) {
+        hideEntity(nodeId);
+        return;
+      }
 
-    for (const moduleId of graph.modules) {
-      if (!isModuleInsideFolder(moduleId, folderPath)) continue;
-      hideEntity(moduleId);
-    }
-  }, [graph, hideEntity]);
+      for (const moduleId of graph.modules) {
+        if (!isModuleInsideFolder(moduleId, folderPath)) continue;
+        hideEntity(moduleId);
+      }
+    },
+    [graph, hideEntity]
+  );
 
   const selectedNodeInfo = useMemo(() => {
     if (!selectedEntityId) return null;
@@ -786,12 +641,13 @@ export default function Graph() {
     const folderPath = fromFolderNodeId(selectedEntityId);
     if (folderPath) {
       const hasChildren = Boolean(graph?.modules.some((moduleId) => isModuleInsideFolder(moduleId, folderPath)));
+      const folderNodeId = `folder:${folderPath}`;
       return {
         id: selectedEntityId,
-        kind: "folder" as const,
+        kind: 'folder' as const,
         folderPath,
         hasChildren,
-        isPacked: folderPath.length > 0 && !explodedFolderPaths.has(folderPath),
+        isPacked: folderPath.length > 0 ? folderIsPacked(folderNodeId) : false,
       };
     }
 
@@ -802,21 +658,16 @@ export default function Graph() {
     const hasChildren = entity.children.length > 0;
     return {
       id: selectedEntityId,
-      kind: "entity" as const,
+      kind: 'entity' as const,
       hasChildren,
-      isPacked: hasChildren ? isEntityPacked(selectedEntityId, graph, explodedIds, explodedFolderPaths) : false,
+      isPacked: hasChildren ? isEntityPacked(graphNodes, selectedEntityId) : false,
     };
-  }, [explodedFolderPaths, explodedIds, graph, selectedEntityId]);
+  }, [childByParent, folderIsPacked, graph, hiddenById, selectedEntityId]);
 
   useEffect(() => {
     const onWindowKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
-      if (
-        target instanceof HTMLElement
-        && (target.tagName === "INPUT"
-          || target.tagName === "TEXTAREA"
-          || target.isContentEditable)
-      ) {
+      if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
       }
 
@@ -826,108 +677,104 @@ export default function Graph() {
       }
     };
 
-    window.addEventListener("keydown", onWindowKeyDown);
-    return () => window.removeEventListener("keydown", onWindowKeyDown);
+    window.addEventListener('keydown', onWindowKeyDown);
+    return () => window.removeEventListener('keydown', onWindowKeyDown);
   }, [keyboardShortcuts.showAllHiddenExceptExternal, showAllHiddenExceptExternals]);
 
-  const onGraphKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    const target = event.target;
-    if (
-      target instanceof HTMLElement
-      && (target.tagName === "INPUT"
-        || target.tagName === "TEXTAREA"
-        || target.isContentEditable)
-    ) {
-      return;
-    }
-
-    if (!isGraphViewFocused || !selectedEntityId) return;
-
-    const nativeEvent = event.nativeEvent;
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.hideNode)) {
-      event.preventDefault();
-      hideNodeById(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showMoreRelationships)) {
-      event.preventDefault();
-      onShowMoreRelationships(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.isolateNode)) {
-      event.preventDefault();
-      onIsolate(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.revealInExplorer)) {
-      event.preventDefault();
-      onRevealInExplorer(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependenciesOnly)) {
-      event.preventDefault();
-      onShowDependenciesOnly(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependentsOnly)) {
-      event.preventDefault();
-      onShowDependentsOnly(selectedEntityId);
-      return;
-    }
-
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.unpackNode)) {
-      if (!selectedNodeInfo?.hasChildren || !selectedNodeInfo.isPacked) return;
-      event.preventDefault();
-
-      if (selectedNodeInfo.kind === "folder") {
-        explodeFolder(selectedNodeInfo.folderPath);
+  const onGraphKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
       }
 
-      explodeEntity(selectedNodeInfo.id);
-      return;
-    }
+      if (!isGraphViewFocused || !selectedEntityId) return;
 
-    if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.packNode)) {
-      if (!selectedNodeInfo?.hasChildren || selectedNodeInfo.isPacked) return;
-      event.preventDefault();
+      const nativeEvent = event.nativeEvent;
 
-      if (selectedNodeInfo.kind === "folder") {
-        collapseFolder(selectedNodeInfo.folderPath);
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.hideNode)) {
+        event.preventDefault();
+        hideNodeById(selectedEntityId);
         return;
       }
 
-      collapseEntity(selectedNodeInfo.id);
-    }
-  }, [
-    isGraphViewFocused,
-    keyboardShortcuts.hideNode,
-    keyboardShortcuts.isolateNode,
-    keyboardShortcuts.packNode,
-    keyboardShortcuts.revealInExplorer,
-    keyboardShortcuts.showDependenciesOnly,
-    keyboardShortcuts.showDependentsOnly,
-    keyboardShortcuts.showMoreRelationships,
-    keyboardShortcuts.unpackNode,
-    collapseEntity,
-    collapseFolder,
-    explodeEntity,
-    explodeFolder,
-    onIsolate,
-    onRevealInExplorer,
-    onShowDependenciesOnly,
-    onShowDependentsOnly,
-    onShowMoreRelationships,
-    selectedEntityId,
-    selectedNodeInfo,
-    hideNodeById,
-  ]);
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showMoreRelationships)) {
+        event.preventDefault();
+        onShowMoreRelationships(selectedEntityId);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.isolateNode)) {
+        event.preventDefault();
+        onIsolate(selectedEntityId);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.revealInExplorer)) {
+        event.preventDefault();
+        onRevealInExplorer(selectedEntityId);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependenciesOnly)) {
+        event.preventDefault();
+        onShowDependenciesOnly(selectedEntityId);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.showDependentsOnly)) {
+        event.preventDefault();
+        onShowDependentsOnly(selectedEntityId);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.unpackNode)) {
+        if (!selectedNodeInfo?.hasChildren || !selectedNodeInfo.isPacked) return;
+        event.preventDefault();
+
+        if (selectedNodeInfo.kind === 'folder') {
+          explodeEntity(selectedNodeInfo.id);
+          return;
+        }
+
+        explodeEntity(selectedNodeInfo.id);
+        return;
+      }
+
+      if (shortcutMatchesKeyboardEvent(nativeEvent, keyboardShortcuts.packNode)) {
+        if (!selectedNodeInfo?.hasChildren || selectedNodeInfo.isPacked) return;
+        event.preventDefault();
+
+        if (selectedNodeInfo.kind === 'folder') {
+          collapseEntity(selectedNodeInfo.id);
+          return;
+        }
+
+        collapseEntity(selectedNodeInfo.id);
+      }
+    },
+    [
+      isGraphViewFocused,
+      keyboardShortcuts.hideNode,
+      keyboardShortcuts.isolateNode,
+      keyboardShortcuts.packNode,
+      keyboardShortcuts.revealInExplorer,
+      keyboardShortcuts.showDependenciesOnly,
+      keyboardShortcuts.showDependentsOnly,
+      keyboardShortcuts.showMoreRelationships,
+      keyboardShortcuts.unpackNode,
+      collapseEntity,
+      explodeEntity,
+      onIsolate,
+      onRevealInExplorer,
+      onShowDependenciesOnly,
+      onShowDependentsOnly,
+      onShowMoreRelationships,
+      selectedEntityId,
+      selectedNodeInfo,
+      hideNodeById,
+    ]
+  );
 
   const onDividerMouseDown = useCallback(
     (event: React.MouseEvent) => {
@@ -944,12 +791,12 @@ export default function Graph() {
 
       const onUp = () => {
         isDraggingDivider.current = false;
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
       };
 
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
     },
     [setPaneWidth]
   );
@@ -969,12 +816,12 @@ export default function Graph() {
 
       const onUp = () => {
         isDraggingExplorerDivider.current = false;
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
       };
 
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
     },
     [setExplorerPaneWidth]
   );
@@ -1000,13 +847,10 @@ export default function Graph() {
       <div style={{ width: `${explorerPaneWidth}%` }} className="h-full shrink-0 min-w-55">
         <FileExplorer
           graph={graph}
-          explodedIds={explodedIds}
-          explodedFolderPaths={explodedFolderPaths}
-          hiddenIds={hiddenIds}
+          graphNodes={graphNodes}
+          graphEdges={graphEdges}
           onExplode={explodeEntity}
           onCollapse={collapseEntity}
-          onExplodeFolder={explodeFolder}
-          onCollapseFolder={collapseFolder}
           onHide={hideEntity}
           onShow={showEntity}
           onFocusInGraph={onFocusInGraph}
@@ -1017,7 +861,10 @@ export default function Graph() {
           revealRequest={revealInExplorerRequest}
         />
       </div>
-      <div onMouseDown={onExplorerDividerMouseDown} className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]" />
+      <div
+        onMouseDown={onExplorerDividerMouseDown}
+        className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]"
+      />
       <div ref={workspaceRef} className="flex flex-1 min-w-0 h-full">
         <div
           ref={graphViewportRef}
@@ -1031,7 +878,7 @@ export default function Graph() {
           onKeyDown={onGraphKeyDown}
           style={{
             width: `${paneWidth}%`,
-            outline: isGraphViewFocused ? "2px solid #93c5fd" : "none",
+            outline: isGraphViewFocused ? '2px solid #93c5fd' : 'none',
             outlineOffset: -2,
           }}
           className="h-full shrink-0 bg-[#f1f5f9]"
@@ -1048,7 +895,10 @@ export default function Graph() {
             />
           </ReactFlowProvider>
         </div>
-        <div onMouseDown={onDividerMouseDown} className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]" />
+        <div
+          onMouseDown={onDividerMouseDown}
+          className="w-1 h-full shrink-0 bg-[#1e293b] cursor-col-resize transition-colors duration-100 hover:bg-[#334155]"
+        />
         <div className="flex-1 h-full overflow-hidden">
           <CodePane />
         </div>

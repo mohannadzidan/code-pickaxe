@@ -5,14 +5,29 @@ export type LayoutDirection = "TB" | "LR";
 export type DomainNode = {
   id: EntityId;
   label: string;
-  kind: string;
+  kind:
+    | "module"
+    | "class"
+    | "function"
+    | "variable"
+    | "code-block"
+    | "method"
+    | "property"
+    | "folder";
   subKind?: string;
-  filePath: string;
-  modulePath?: string;
+  code?: CodeDefinition;
   isExternal?: boolean;
-  canExplode?: boolean;
-  parentContainerId?: string;
-  parentContainerLabel?: string;
+  children: EntityId[];
+  parentLabel?: string;
+  showParentLabel: boolean;
+  hidden: boolean;
+  parentId?: EntityId;
+  outEdgeIds: EntityId[];
+  inEdgeIds: EntityId[];
+  position: {
+    x: number;
+    y: number;
+  };
 };
 
 export type DomainEdge = {
@@ -20,8 +35,12 @@ export type DomainEdge = {
   source: EntityId;
   target: EntityId;
   label?: string;
-  isOriginEdge?: boolean;
-  firstUsageLoc?: CodeDefinition;
+  code?: CodeDefinition;
+};
+
+export type GraphState = {
+  nodes: Record<string, DomainNode>;
+  edges: Record<string, DomainEdge>;
 };
 
 export type VisualGraph = {

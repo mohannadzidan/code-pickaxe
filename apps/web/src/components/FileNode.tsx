@@ -1,12 +1,7 @@
+import { DomainNode } from "@/shared/types/domain";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 
-export type FileNodeData = {
-  id: string;
-  label: string;
-  kind: string;
-  subKind?: string;
-  filePath?: string;
-  modulePath?: string;
+export type FileNodeData = DomainNode & {
   isExternal?: boolean;
   isSelected?: boolean;
   onSelectNode: (entityId: string) => void;
@@ -73,20 +68,12 @@ export default function FileNode({ id, data }: NodeProps) {
         </span>
         <span
           className="text-[11px] text-[#334155] font-semibold flex-1 overflow-hidden truncate"
-          title={d.filePath ?? d.label}
+          title={d.code?.file ?? d.label}
         >
-          {d.filePath ?? d.label}
+          {d.code?.file ?? d.label}
         </span>
       </div>
 
-      {d.modulePath && d.kind !== "module" && (
-        <div
-          className="px-[10px] pb-[6px] text-[10px] text-[#64748b] leading-[1.2] overflow-hidden truncate"
-          title={d.modulePath}
-        >
-          {d.modulePath}
-        </div>
-      )}
 
       <Handle type="source" position={Position.Bottom} className="opacity-0 pointer-events-none" />
     </div>
