@@ -70,7 +70,7 @@ export default function FileNode({ id, data }: NodeProps) {
           className="text-[11px] text-[#334155] font-semibold flex-1 overflow-hidden truncate"
           title={d.code?.file ?? d.label}
         >
-          {d.code?.file ?? d.label}
+          {d.label}
         </span>
       </div>
 

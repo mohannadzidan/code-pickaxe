@@ -111,6 +111,7 @@ export class GraphProjectionService {
           target: dep.target,
           code: dep.usages[0]?.location,
         };
+        console.log(edges[id]);
       }
 
       const ctxSet = edgeContexts.get(id) ?? new Set<string>();

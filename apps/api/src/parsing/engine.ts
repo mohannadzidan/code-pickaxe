@@ -74,6 +74,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
 
   async parse(projectPath: string, options?: ParseOptions): Promise<SerializedCodeGraph> {
     const graph = await this.parseCodeGraph(projectPath, options);
+    console.log()
     return {
       entities: Object.fromEntries(graph.entities),
       dependencies: graph.dependencies,

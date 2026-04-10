@@ -124,8 +124,8 @@ function LayoutFlow({
       // nearest visible parent
       return {
         id: edge.id,
-        source: nearestVisibleParent(edge.source),
-        target: nearestVisibleParent(edge.target),
+        source: nearestVisibleParent(edge.source) ?? edge.source,
+        target: nearestVisibleParent(edge.target) ?? edge.target,
         type: 'floating',
         markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
         style: { stroke: '#94a3b8', strokeWidth: 1.5 },
@@ -136,7 +136,8 @@ function LayoutFlow({
         },
       };
     })
-    .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
+    // .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
+    // console.log(edges)
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -157,7 +158,10 @@ function LayoutFlow({
         x: node.position.x,
         y: node.position.y,
       })),
-      edges
+      edges.map((edge) => ({
+        source: edge.source,
+        target: edge.target,
+      }))
     );
   }, [nodes, edges]);
 
