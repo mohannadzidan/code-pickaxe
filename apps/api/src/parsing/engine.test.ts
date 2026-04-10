@@ -93,6 +93,7 @@ function getFixtureRoots(): Array<{ name: string; root: string }> {
 
 describe('TypeScriptParsingEngine', () => {
   const fixtures = getFixtureRoots();
+  const byName = new Map(fixtures.map((fixture) => [fixture.name, fixture.root]));
 
   it('discovers all example fixtures', () => {
     expect(fixtures.length).toBeGreaterThanOrEqual(12);
@@ -147,6 +148,33 @@ describe('TypeScriptParsingEngine', () => {
         expect(Boolean(graph.entities[dep.target]), `${name}: dangling dependency target ${dep.target}`).toBe(true);
       }
     }
+  });
+
+  it('resolves internal import dependencies to symbol-level entity targets when possible', async () => {
+    const root = byName.get('01-basic-imports');
+    expect(root).toBeDefined();
+
+    const engine = new TypeScriptParsingEngine();
+    const graph = await engine.parse(root!);
+
+    const depBySymbol = (symbolName: string): Dependency | undefined =>
+      graph.dependencies.find(
+        (dep) =>
+          dep.source === 'src/index.ts::area' &&
+          dep.importedSymbol.moduleSpecifier === './math' &&
+          dep.importedSymbol.symbolName === symbolName
+      );
+
+    expect(depBySymbol('mul')?.target).toBe('src/math.ts::mul');
+    expect(depBySymbol('PI')?.target).toBe('src/math.ts::PI');
+
+    const defaultDep = graph.dependencies.find(
+      (dep) =>
+        dep.source === 'src/index.ts::sum' &&
+        dep.importedSymbol.moduleSpecifier === './math' &&
+        dep.importedSymbol.symbolName === 'default'
+    );
+    expect(defaultDep?.target).toBe('src/math.ts::add');
   });
 
   it.each(fixtures)('matches normalized graph snapshot for %s', async ({ root }) => {

@@ -113,6 +113,7 @@ export interface ImportedSymbol {
   alias?: string;
   moduleSpecifier: string;
   resolvedModuleId: EntityId | null;
+  resolvedEntityId?: EntityId | null;
   isTypeOnly: boolean;
   isDefault: boolean;
   isNamespace: boolean;

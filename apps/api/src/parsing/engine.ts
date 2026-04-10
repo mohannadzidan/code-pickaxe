@@ -153,6 +153,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
         );
         if (resolved) {
           sym.resolvedModuleId = resolved;
+            sym.resolvedEntityId = this.resolveImportedEntityId(sym, entities);
         } else {
           // External module
           const specifier = this.packageName(sym.moduleSpecifier);
@@ -187,7 +188,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
         const usagesMap = this.attributeUsages(declNode, importMap);
         for (const [localName, usages] of usagesMap) {
           const sym = importMap.get(localName)!;
-          const target = sym.resolvedModuleId ?? `external:${this.packageName(sym.moduleSpecifier)}`;
+            const target = sym.resolvedEntityId ?? sym.resolvedModuleId ?? `external:${this.packageName(sym.moduleSpecifier)}`;
 
           if (!claimedImports.has(localName)) claimedImports.set(localName, new Set());
           claimedImports.get(localName)!.add(declId);
@@ -224,7 +225,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           moduleEntity.children.push(codeBlockId);
         }
 
-        const target = sym.resolvedModuleId ?? `external:${this.packageName(sym.moduleSpecifier)}`;
+          const target = sym.resolvedEntityId ?? sym.resolvedModuleId ?? `external:${this.packageName(sym.moduleSpecifier)}`;
         allDependencies.push({
           source: codeBlockId,
           target,
@@ -241,6 +242,34 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
       externalModules: Array.from(externalModulesMap.values()),
     });
   }
+
+    private resolveImportedEntityId(
+      symbol: ImportedSymbol,
+      entities: Map<EntityId, CodeEntity>
+    ): EntityId | null {
+      const moduleId = symbol.resolvedModuleId;
+      if (!moduleId) return null;
+      if (symbol.isNamespace || symbol.symbolName === '*') return null;
+
+      const moduleEntity = entities.get(moduleId);
+      if (!moduleEntity || moduleEntity.kind !== 'module' || !("members" in moduleEntity)) return null;
+
+      const members = (moduleEntity as CodeModule).members
+        .map((memberId) => entities.get(memberId))
+        .filter((member): member is CodeEntity => Boolean(member));
+
+      if (symbol.isDefault) {
+        const defaultMember = members.find(
+          (member) => member.exported && (member.sourceText?.includes('export default') ?? false)
+        );
+        return defaultMember?.id ?? null;
+      }
+
+      const namedMember = members.find(
+        (member) => member.exported && member.name === symbol.symbolName
+      );
+      return namedMember?.id ?? null;
+    }
 
   private filterIsolatedGraph(graph: CodeGraph): CodeGraph {
     const { entities, dependencies, modules, externalModules } = graph;
@@ -656,6 +685,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           symbolName: options.symbolName ?? localName,
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: options.isTypeOnly,
           isDefault: options.isDefault,
           isNamespace: options.isNamespace,
@@ -672,6 +702,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
             symbolName: propertyName,
             moduleSpecifier,
             resolvedModuleId: null,
+            resolvedEntityId: null,
             isTypeOnly: options.isTypeOnly,
             isDefault: false,
             isNamespace: false,
@@ -693,6 +724,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           alias: localName,
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly,
           isDefault: true,
           isNamespace: false,
@@ -708,6 +740,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           alias: localName,
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly,
           isDefault: false,
           isNamespace: true,
@@ -724,6 +757,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           alias: alias !== symbolName ? alias : undefined,
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: isTypeOnly || named.isTypeOnly(),
           isDefault: false,
           isNamespace: false,
@@ -746,6 +780,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
         alias: localName,
         moduleSpecifier,
         resolvedModuleId: null,
+        resolvedEntityId: null,
         isTypeOnly: false,
         isDefault: false,
         isNamespace: true,
@@ -767,6 +802,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
             alias: alias !== symbolName ? alias : undefined,
             moduleSpecifier,
             resolvedModuleId: null,
+            resolvedEntityId: null,
             isTypeOnly: exportDecl.isTypeOnly(),
             isDefault: false,
             isNamespace: false,
@@ -782,6 +818,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           alias,
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: exportDecl.isTypeOnly(),
           isDefault: false,
           isNamespace: true,
@@ -794,6 +831,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           symbolName: '*',
           moduleSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: exportDecl.isTypeOnly(),
           isDefault: false,
           isNamespace: true,
@@ -836,6 +874,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           symbolName: '*',
           moduleSpecifier: requireSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: false,
           isDefault: false,
           isNamespace: true,
@@ -849,6 +888,7 @@ export class TypeScriptParsingEngine implements ParsingEngineContract {
           symbolName: '*',
           moduleSpecifier: dynSpecifier,
           resolvedModuleId: null,
+          resolvedEntityId: null,
           isTypeOnly: false,
           isDefault: false,
           isNamespace: true,
