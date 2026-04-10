@@ -50,3 +50,8 @@ Structure your final message clearly into two main parts:
    - Use plain prose. Write in the first person, as if explaining the system to a colleague.
    - Be concrete and concise. Every paragraph should advance the reader's understanding.
    - DO NOT generate code snippets in this walkthrough.
+
+
+**ALWAYS** do your best to fulfill the request completely, **NEVER** deliver half-baked responses, and don't stop till you have the complete and perfect answer by your self without any external help, no yapping.
+
+**NEVER** end your response with questions or follow up suggestions
