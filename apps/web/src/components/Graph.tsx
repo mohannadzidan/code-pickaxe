@@ -26,7 +26,6 @@ import {
   useGraphStore,
   selectGraphData,
   selectEdges,
-  selectLayoutDirection,
   selectNodes,
   selectNodesList,
 } from '@/features/graph/store/graphStore';
@@ -41,7 +40,7 @@ import { selectKeyboardShortcuts, shortcutMatchesKeyboardEvent, useKeyboardShort
 import SettingsPopup from './SettingsPopup';
 import { Crosshair, EyeOff, PackageOpen, Search, Target } from 'lucide-react';
 import { useShallow } from 'zustand/shallow';
-import { GraphState } from '@/shared/types/domain';
+import { GraphState, NodePositions } from '@/shared/types/domain';
 
 const nodeTypes: NodeTypes = { file: FileNode };
 const edgeTypes: EdgeTypes = { floating: FloatingEdge };
@@ -89,7 +88,6 @@ function LayoutFlow({
   const explodeEntity = useGraphStore((s) => s.explodeEntity);
   const collapseEntity = useGraphStore((s) => s.collapseEntity);
   const hideEntity = useGraphStore((s) => s.hideEntity);
-  const setNodePosition = useGraphStore((s) => s.setNodePosition);
   const graph = useGraphStore((s) => s.graph);
   const setNodePositions = useGraphStore((s) => s.setNodePositions);
   const simulationRef = useRef(services.simulationService);
@@ -119,25 +117,24 @@ function LayoutFlow({
     style: { width: 'auto', height: node.showParentLabel ? 48 : 36 },
   }));
 
-  const edges: Edge[] = Object.values(graphEdges)
-    .map((edge) => {
-      // nearest visible parent
-      return {
-        id: edge.id,
-        source: nearestVisibleParent(edge.source) ?? edge.source,
-        target: nearestVisibleParent(edge.target) ?? edge.target,
-        type: 'floating',
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
-        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
-        label: edge.label,
-        data: {
-          firstUsageLoc: edge.code,
-          onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
-        },
-      };
-    })
-    // .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
-    // console.log(edges)
+  const edges: Edge[] = Object.values(graphEdges).map((edge) => {
+    // nearest visible parent
+    return {
+      id: edge.id,
+      source: nearestVisibleParent(edge.source) ?? edge.source,
+      target: nearestVisibleParent(edge.target) ?? edge.target,
+      type: 'floating',
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
+      style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+      label: edge.label,
+      data: {
+        firstUsageLoc: edge.code,
+        onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
+      },
+    };
+  });
+  // .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
+  // console.log(edges)
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
@@ -194,13 +191,9 @@ function LayoutFlow({
     [onRevealInExplorer]
   );
 
-  const onNodeDrag = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
-      simulationRef.current.dragNode(node.id, node.position);
-      setNodePosition(node.id, node.position);
-    },
-    [setNodePosition]
-  );
+  const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    simulationRef.current.dragNode(node.id, node.position);
+  }, []);
 
   const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
     simulationRef.current.releaseNode(node.id, node.position);
@@ -364,6 +357,14 @@ function LayoutFlow({
         onNodeClick={closeMenu}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
+        onNodesChange={(changes) => {
+          if (changes.some((c) => c.type === 'position')) {
+            setNodePositions(
+              Object.fromEntries(changes.filter((c) => c.type === 'position').map((a) => [a.id, a.position])) as NodePositions
+            );
+            console.log(Object.fromEntries(changes.filter((c) => c.type === 'position').map((a) => [a.id, a.position])));
+          }
+        }}
         nodesConnectable={false}
         fitView
       >
@@ -387,25 +388,8 @@ type LayoutButtonsProps = {
 };
 
 function LayoutButtons({ onReheat, onOpenSettings }: LayoutButtonsProps) {
-  const direction = useGraphStore(selectLayoutDirection);
-  const setLayoutDirection = useGraphStore((s) => s.setLayoutDirection);
-
   return (
     <div className="flex gap-1.5">
-      <button
-        className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
-        style={{ border: `1px solid ${direction === 'TB' ? '#94a3b8' : '#e2e8f0'}` }}
-        onClick={() => setLayoutDirection('TB')}
-      >
-        Vertical Layout
-      </button>
-      <button
-        className="rounded-md px-3 py-1.5 bg-white cursor-pointer"
-        style={{ border: `1px solid ${direction === 'LR' ? '#94a3b8' : '#e2e8f0'}` }}
-        onClick={() => setLayoutDirection('LR')}
-      >
-        Horizontal Layout
-      </button>
       <button className="rounded-md px-3 py-1.5 bg-white border border-[#e2e8f0] cursor-pointer" onClick={onReheat}>
         Reheat
       </button>
