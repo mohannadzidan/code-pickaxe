@@ -54,7 +54,3 @@ sub agents are weak at handling complex instructions and multi-step reasoning, s
 - Place shared infra and contracts under shared modules only when genuinely cross-domain.
 - Keep bootstrap/composition in a single app entry layer that wires service singletons and adapters.
 - Treat parser/analysis engine as backend domain logic; UI should consume API contracts, not backend internals.
-
-**ALWAYS** do your best to fulfill the request completely, **NEVER** deliver half-baked responses, and don't stop till you have the complete and perfect answer by your self without any external help, no yapping.
-
-**NEVER** end your response with questions or follow up suggestions

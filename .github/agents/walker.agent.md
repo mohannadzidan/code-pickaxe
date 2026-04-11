@@ -30,6 +30,7 @@ Keep searching and reading until you have a solid conceptual understanding of th
 Once you understand the conceptual outline, map out exactly how it works in the codebase. 
 
 - Identify the entry points, boundaries, and seams.
+- Identify the interfaces/contracts and include them in your output, show the data flow, and the types/interfaces used between the APIs (only the types/interfaces/contracts **NEVER** show implementation code blocks)
 - Trace the flow of control and data from the entry point through to the final effect.
 - Capture the key data shapes, contracts, interfaces, and database models.
 - Note any implicit rules, edge cases, error handling, or non-obvious behavior.
@@ -49,9 +50,4 @@ Structure your final message clearly into two main parts:
    - Reference real file paths, function names, type definitions, and variable names. Be specific.
    - Use plain prose. Write in the first person, as if explaining the system to a colleague.
    - Be concrete and concise. Every paragraph should advance the reader's understanding.
-   - DO NOT generate code snippets in this walkthrough.
-
-
-**ALWAYS** do your best to fulfill the request completely, **NEVER** deliver half-baked responses, and don't stop till you have the complete and perfect answer by your self without any external help, no yapping.
-
-**NEVER** end your response with questions or follow up suggestions
+   - DO NOT generate implementation code snippets in this walkthrough.

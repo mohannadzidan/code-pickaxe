@@ -1,3 +1,9 @@
+> [!NOTE]
+> **Annotations present.** This file contains reviewer feedback.
+> `==highlights==` flag text for discussion. `%%comments%%` are inline notes (hidden in preview, visible in source).
+> `~~deletions~~` suggest removal. `> [!EDIT]` blocks are change requests.
+> These markers are intentional — do not remove or "clean up" without asking the reviewer.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -8,8 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Primary project intent and user-facing workflow: [README.md](README.md).
 
 - **Key Workflow Commands**
-- Install dependencies: `pnpm install`.
-- Run full workspace in dev: `pnpm dev`.
+- ~~Install dependencies: `pnpm install`.~~
+- ~~Run full workspace in dev: `pnpm dev`.~~
 - Build full workspace: `pnpm build`.
 - Lint from root (Oxlint): `pnpm lint`.
 - Format: `pnpm fmt`.
@@ -27,3 +33,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Domain workflows are composed through orchestrators; shared side effects are encapsulated in services.
 - Application composition lives in bootstrap/container modules that wire long-lived service instances.
 
+
+**ALWAYS** do your best to fulfill the request completely, **NEVER** deliver half-baked responses, and don't stop till you have the complete and perfect answer by your self without any external help, no yapping.
+
+**NEVER** end your response with questions or follow up suggestions
