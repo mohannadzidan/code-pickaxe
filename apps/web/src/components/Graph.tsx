@@ -22,19 +22,13 @@ import ContextMenu from './ContextMenu';
 import type { ContextMenuAction } from './ContextMenu';
 import CodePane from './CodePane';
 import FileExplorer from './FileExplorer';
-import {
-  useGraphStore,
-  selectGraphData,
-  selectEdges,
-  selectNodes,
-} from '@/features/graph/store/graphStore';
+import { useGraphStore, selectGraphData, selectEdges, selectNodes, selectFocusedNodes } from '@/features/graph/store/graphStore';
 import { selectSelectedEntityId, useSelectionStore } from '@/features/selection/store/selectionStore';
 import { selectExplorerPaneWidth, selectPaneWidth, useUiStore } from '@/shared/store/uiStore';
 import { services } from '@/app/bootstrap';
 import { loadGraph } from '@/orchestrators/loadGraph';
 import { selectEntity } from '@/orchestrators/selectEntity';
 import { navigateToEdgeSource } from '@/orchestrators/navigateToEdgeSource';
-import { fromFolderNodeId, isModuleInsideFolder } from '@/features/graph/services/folderPath';
 import SettingsPopup from './SettingsPopup';
 import { Crosshair } from 'lucide-react';
 import { useCommands } from '@/features/commands/useCommands';
@@ -56,10 +50,7 @@ type LayoutFlowProps = {
   onOpenSettings: () => void;
 };
 
-function LayoutFlow({
-  onRevealInExplorer,
-  onOpenSettings,
-}: LayoutFlowProps) {
+function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   const reactFlow = useReactFlow();
   const graphNodes = useGraphStore(selectNodes);
   const graphEdges = useGraphStore(selectEdges);
@@ -67,6 +58,7 @@ function LayoutFlow({
   const [menu, setMenu] = useState<MenuState | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
   const setNodePositions = useGraphStore((s) => s.setNodePositions);
+  const focusedNodes = useGraphStore(selectFocusedNodes);
   const availableCommands = useCommands('graph');
   const simulationRef = useRef(services.simulationService);
 
@@ -143,12 +135,12 @@ function LayoutFlow({
   useEffect(() => {
     if (!selectedEntityId) return;
     reactFlow.fitView({
-      nodes: [{ id: selectedEntityId }],
+      nodes: focusedNodes.map((id) => ({ id })),
       padding: 0.35,
       duration: 250,
       maxZoom: 1.2,
     });
-  }, [selectedEntityId, reactFlow]);
+  }, [selectedEntityId, reactFlow, focusedNodes]);
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -185,7 +177,15 @@ function LayoutFlow({
   const menuActions = useMemo<ContextMenuAction[]>(() => {
     if (!menu) return [];
 
-    const commandIds = new Set(['unpack', 'pack', 'hide', 'isolate', 'showMoreRelationships', 'showDependenciesOnly', 'showDependentsOnly']);
+    const commandIds = new Set([
+      'unpack',
+      'pack',
+      'hide',
+      'isolate',
+      'showMoreRelationships',
+      'showDependenciesOnly',
+      'showDependentsOnly',
+    ]);
     const ctx = { activeSurface: 'graph' as const, selectedEntityId: menu.nodeId };
 
     const actions: ContextMenuAction[] = availableCommands
@@ -273,15 +273,7 @@ export default function Graph() {
   const setPaneWidth = useUiStore((s) => s.setPaneWidth);
   const graph = useGraphStore(selectGraphData);
   const graphNodes = useGraphStore(selectNodes);
-  const graphEdges = useGraphStore(selectEdges);
-  const relationEdges = useMemo(() => Object.values(graphEdges), [graphEdges]);
-  const explodeEntity = useGraphStore((s) => s.explodeEntity);
-  const collapseEntity = useGraphStore((s) => s.collapseEntity);
-  const hideEntity = useGraphStore((s) => s.hideEntity);
-  const showEntity = useGraphStore((s) => s.showEntity);
-  const applyVisibilityMask = useGraphStore((s) => s.applyVisibilityMask);
   const [revealInExplorerRequest, setRevealInExplorerRequest] = useState<{ nodeId: string; token: number } | null>(null);
-  const [focusRequest, setFocusRequest] = useState<{ nodeId: string; token: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isGraphViewFocused, setIsGraphViewFocused] = useState(false);
   const isDraggingDivider = useRef(false);
@@ -296,133 +288,7 @@ export default function Graph() {
     }
   }, [query.data]);
 
-  const resolveSeedIds = useCallback(
-    (nodeId: string): Set<string> => {
-      if (!graph) return new Set<string>([nodeId]);
-
-      const folderPath = fromFolderNodeId(nodeId);
-      if (!folderPath) return new Set<string>([nodeId]);
-
-      const seeds = new Set<string>();
-      for (const moduleId of graph.modules) {
-        if (isModuleInsideFolder(moduleId, folderPath)) {
-          seeds.add(moduleId);
-        }
-      }
-      return seeds;
-    },
-    [graph]
-  );
-
-  const resolveRelatedIds = useCallback(
-    (nodeId: string, direction: 'outgoing' | 'incoming' | 'both'): Set<string> => {
-      const seeds = resolveSeedIds(nodeId);
-      const related = new Set<string>();
-
-      for (const edge of relationEdges) {
-        const sourceMatches = seeds.has(edge.source);
-        const targetMatches = seeds.has(edge.target);
-
-        if ((direction === 'outgoing' || direction === 'both') && sourceMatches) {
-          related.add(edge.target);
-        }
-        if ((direction === 'incoming' || direction === 'both') && targetMatches) {
-          related.add(edge.source);
-        }
-      }
-
-      return related;
-    },
-    [relationEdges, resolveSeedIds]
-  );
-
-  const addEntityAncestors = useCallback(
-    (ids: Set<string>): Set<string> => {
-      if (!graph) return ids;
-
-      const next = new Set(ids);
-      for (const id of Array.from(ids)) {
-        if (id.startsWith('external:')) continue;
-        let current = graph.entities[id];
-        while (current?.parent) {
-          next.add(current.parent);
-          current = graph.entities[current.parent];
-        }
-      }
-
-      return next;
-    },
-    [graph]
-  );
-
-  const setVisibilityByIds = useCallback(
-    (visibleIds: Set<string>) => {
-      if (!graph) return;
-
-      const withAncestors = addEntityAncestors(visibleIds);
-      applyVisibilityMask(withAncestors);
-    },
-    [addEntityAncestors, applyVisibilityMask, graph]
-  );
-
-  const currentlyVisibleIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const node of Object.values(graphNodes)) {
-      if (!node.hidden && node.kind !== 'folder') {
-        ids.add(node.id);
-      }
-    }
-    return ids;
-  }, [graphNodes]);
-
-  const onIsolate = useCallback(
-    (nodeId: string) => {
-      const keepIds = resolveSeedIds(nodeId);
-      for (const relatedId of resolveRelatedIds(nodeId, 'both')) {
-        keepIds.add(relatedId);
-      }
-
-      setVisibilityByIds(keepIds);
-    },
-    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
-  );
-
-  const onShowDependenciesOnly = useCallback(
-    (nodeId: string) => {
-      const keepIds = resolveSeedIds(nodeId);
-      for (const relatedId of resolveRelatedIds(nodeId, 'outgoing')) {
-        keepIds.add(relatedId);
-      }
-      setVisibilityByIds(keepIds);
-    },
-    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
-  );
-
-  const onShowDependentsOnly = useCallback(
-    (nodeId: string) => {
-      const keepIds = resolveSeedIds(nodeId);
-      for (const relatedId of resolveRelatedIds(nodeId, 'incoming')) {
-        keepIds.add(relatedId);
-      }
-      setVisibilityByIds(keepIds);
-    },
-    [resolveRelatedIds, resolveSeedIds, setVisibilityByIds]
-  );
-
-  const onShowMoreRelationships = useCallback(
-    (nodeId: string) => {
-      const keepIds = new Set<string>(currentlyVisibleIds);
-      keepIds.add(nodeId);
-      for (const relatedId of resolveRelatedIds(nodeId, 'both')) {
-        keepIds.add(relatedId);
-      }
-      setVisibilityByIds(keepIds);
-    },
-    [currentlyVisibleIds, resolveRelatedIds, setVisibilityByIds]
-  );
-
   const onFocusInGraph = useCallback((nodeId: string) => {
-    setFocusRequest({ nodeId, token: Date.now() });
     selectEntity(nodeId);
   }, []);
 
@@ -499,21 +365,7 @@ export default function Graph() {
     <div ref={rootRef} className="flex w-screen h-screen bg-[#0f172a] overflow-hidden">
       <SettingsPopup open={settingsOpen} onOpenChange={setSettingsOpen} />
       <div style={{ width: `${explorerPaneWidth}%` }} className="h-full shrink-0 min-w-55">
-        <FileExplorer
-          graph={graph}
-          graphNodes={graphNodes}
-          graphEdges={graphEdges}
-          onExplode={explodeEntity}
-          onCollapse={collapseEntity}
-          onHide={hideEntity}
-          onShow={showEntity}
-          onFocusInGraph={onFocusInGraph}
-          onIsolate={onIsolate}
-          onShowDependenciesOnly={onShowDependenciesOnly}
-          onShowDependentsOnly={onShowDependentsOnly}
-          onShowMoreRelationships={onShowMoreRelationships}
-          revealRequest={revealInExplorerRequest}
-        />
+        <FileExplorer graph={graph} graphNodes={graphNodes} onFocusInGraph={onFocusInGraph} revealRequest={revealInExplorerRequest} />
       </div>
       <div
         onMouseDown={onExplorerDividerMouseDown}
@@ -537,10 +389,7 @@ export default function Graph() {
           className="h-full shrink-0 bg-[#f1f5f9]"
         >
           <ReactFlowProvider>
-            <LayoutFlow
-              onRevealInExplorer={onRevealInExplorer}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
+            <LayoutFlow onRevealInExplorer={onRevealInExplorer} onOpenSettings={() => setSettingsOpen(true)} />
           </ReactFlowProvider>
         </div>
         <div

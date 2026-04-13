@@ -5,6 +5,7 @@ import { services } from '@/app/bootstrap';
 
 type StoreState = GraphState & {
   graph: SerializedCodeGraph | null;
+  focusedNodes: string[];
 };
 
 type GraphActions = {
@@ -15,6 +16,7 @@ type GraphActions = {
   showEntity: (entityId: string) => void;
   applyVisibilityMask: (visibleIds: Set<string>) => void;
   setNodePositions: (positions: NodePositions) => void;
+  setFocusedNodes: (nodeIds: string[]) => void;
 };
 
 type GraphStore = StoreState & GraphActions;
@@ -29,7 +31,6 @@ const recursivelyMutateChildren = (
     recursivelyMutateChildren(nodes, childId, mutator);
   });
 };
-
 
 const setEntityVisibility = (
   nodes: Record<string, DomainNode>,
@@ -70,7 +71,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
   nodes: {},
   edges: {},
   layoutDirection: 'TB',
-
+  focusedNodes: [],
   loadGraph: (graph) => {
     const draft = services.graphProjectionService.buildGraphState(graph);
 
@@ -120,7 +121,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
         mutated[node.id] = { ...node, hidden: true };
       }
     });
-console.log({mutated});
+    console.log({ mutated });
     set({ nodes: { ...state.nodes, ...mutated } });
   },
 
@@ -136,9 +137,13 @@ console.log({mutated});
       return { nodes: { ...state.nodes, ...mutated } };
     });
   },
+  setFocusedNodes: (nodeIds) => {
+    set({ focusedNodes: nodeIds });
+  },
 }));
 
 export const selectGraphData = (state: GraphStore) => state.graph;
 export const selectNodes = (state: GraphStore) => state.nodes;
 export const selectEdges = (state: GraphStore) => state.edges;
 export const selectNodesList = (state: GraphStore) => Object.values(state.nodes);
+export const selectFocusedNodes = (state: GraphStore) => state.focusedNodes;
