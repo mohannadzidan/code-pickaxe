@@ -35,50 +35,21 @@ export const isolateCommand: Command = {
       return node.parentId ? nearestVisible(node.parentId) : null;
     };
 
+    console.log('Isolating', ctx.selectedEntityId, nodes[ctx.selectedEntityId]);
+
     // Collect all IDs in a node's subtree so we can match edges that reference
     // sub-entities (e.g. a class inside the selected module).
-    const getSubtreeIds = (nodeId: string): Set<string> => {
-      const result = new Set<string>();
-      const collect = (id: string) => {
-        result.add(id);
-        nodes[id]?.children.forEach((childId) => collect(childId));
-      };
-      collect(nodeId);
-      return result;
+
+    const collectAllRelatedNodes = (nodeId: string, collected = [] as string[]) => {
+      const node = nodes[nodeId];
+      if (!node) return collected;
+      node.outEdgeIds.forEach((id) => collected.push(edges[id].target === nodeId ? edges[id].source : edges[id].target));
+      node.inEdgeIds.forEach((id) => collected.push(edges[id].source === nodeId ? edges[id].target : edges[id].source));
+      node.children.forEach((childId) => collectAllRelatedNodes(childId, collected));
+      return collected;
     };
-
-    const selectedSubtree = getSubtreeIds(ctx.selectedEntityId);
-    const keepIds = new Set<string>();
-
-    // The selected node itself — add its nearest visible form so we don't
-    // accidentally unpack it if it was hidden (e.g. inside a packed parent).
-    const selfVisible = nearestVisible(ctx.selectedEntityId);
-    if (selfVisible) keepIds.add(selfVisible);
-
-    // Add edge neighbors, resolved to their nearest visible ancestor so that
-    // pack state is preserved (a class inside a packed module → add the module,
-    // not the class).
-    for (const edge of Object.values(edges)) {
-      if (selectedSubtree.has(edge.source)) {
-        const visible = nearestVisible(edge.target);
-        if (visible) keepIds.add(visible);
-      }
-      if (selectedSubtree.has(edge.target)) {
-        const visible = nearestVisible(edge.source);
-        if (visible) keepIds.add(visible);
-      }
-    }
-
-    // Add ancestors so the graph renders containers correctly.
-    for (const id of Array.from(keepIds)) {
-      if (id.startsWith('external:')) continue;
-      let current = graph.entities[id];
-      while (current?.parent) {
-        keepIds.add(current.parent);
-        current = graph.entities[current.parent];
-      }
-    }
-
-    graphStore.applyVisibilityMask(keepIds);
+    const selectedSubtree = new Set(collectAllRelatedNodes(ctx.selectedEntityId).map(n => nearestVisible(n) ?? n));
+    selectedSubtree.add(ctx.selectedEntityId);
+    graphStore.applyVisibilityMask(selectedSubtree);
   },
 };

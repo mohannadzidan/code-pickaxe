@@ -1,15 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  defaultShortcutConfig,
-  selectKeyboardShortcuts,
-  selectSetShortcuts,
-  shortcutLabels,
-  shortcutOrder,
-  type ShortcutAction,
-  type ShortcutBinding,
-  type ShortcutConfig,
-  useKeyboardShortcutStore,
-} from "@/shared/store/keyboardShortcutStore";
+import { useMemo, useState } from "react";
+import { useCommandRegistryStore } from "@/features/commands/commandRegistryStore";
+import type { Command, Keybinding } from "@/features/commands/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type SettingsPopupProps = {
@@ -19,44 +10,30 @@ type SettingsPopupProps = {
 
 type SettingsSection = "general" | "shortcuts";
 
-const shortcutDescriptions: Record<ShortcutAction, string> = {
-  showAllHiddenExceptExternal: "Global shortcut; reveals hidden non-external graph nodes.",
-  hideNode: "When graph view is focused and a node is selected.",
-  showMoreRelationships: "When graph view is focused and a node is selected.",
-  isolateNode: "When graph view is focused and a node is selected.",
-  revealInExplorer: "When graph view is focused and a node is selected.",
-  showDependenciesOnly: "When graph view is focused and a node is selected.",
-  showDependentsOnly: "When graph view is focused and a node is selected.",
-  unpackNode: "When graph view is focused and selected node is packed/unpackable.",
-  packNode: "When graph view is focused and selected node is unpacked/packable.",
-};
-
-const bindingToDisplay = (binding: ShortcutBinding): string => {
-  const keyText = binding.key ? binding.key.toUpperCase() : "";
-  return binding.shift ? `Shift + ${keyText}` : keyText;
+const bindingToDisplay = (binding: Keybinding | undefined): string => {
+  if (!binding || !binding.key) return "";
+  const parts: string[] = [];
+  if (binding.modifiers?.shift) parts.push("Shift");
+  if (binding.modifiers?.ctrl) parts.push("Ctrl");
+  if (binding.modifiers?.meta) parts.push("Meta");
+  parts.push(binding.key.toUpperCase());
+  return parts.join(" + ");
 };
 
 export default function SettingsPopup({ open, onOpenChange }: SettingsPopupProps) {
-  const shortcuts = useKeyboardShortcutStore(selectKeyboardShortcuts);
-  const setShortcuts = useKeyboardShortcutStore(selectSetShortcuts);
+  const commandsMap = useCommandRegistryStore((s) => s.commands);
+  const allCommands = useMemo<Command[]>(() => Array.from(commandsMap.values()), [commandsMap]);
+  const customKeybindings = useCommandRegistryStore((s) => s.keybindings);
   const [activeSection, setActiveSection] = useState<SettingsSection>("shortcuts");
-  const [draft, setDraft] = useState<ShortcutConfig>(shortcuts);
 
-  useEffect(() => {
-    if (!open) return;
-    setDraft(shortcuts);
-  }, [open, shortcuts]);
+  const { setKeybinding } = useCommandRegistryStore.getState();
 
-  const hasChanges = useMemo(() => JSON.stringify(draft) !== JSON.stringify(shortcuts), [draft, shortcuts]);
+  const updateBinding = (commandId: string, next: Keybinding) => {
+    setKeybinding(commandId as Parameters<typeof setKeybinding>[0], next);
+  };
 
-  const updateBinding = (action: ShortcutAction, next: ShortcutBinding) => {
-    setDraft((prev) => ({
-      ...prev,
-      [action]: {
-        key: next.key.trim().toLowerCase(),
-        shift: next.shift,
-      },
-    }));
+  const resetDefaults = () => {
+    useCommandRegistryStore.setState({ keybindings: {} });
   };
 
   return (
@@ -98,31 +75,41 @@ export default function SettingsPopup({ open, onOpenChange }: SettingsPopupProps
               </div>
             ) : (
               <div className="space-y-3">
-                {shortcutOrder.map((action) => {
-                  const binding = draft[action];
+                {allCommands.map((cmd) => {
+                  const effectiveBinding = customKeybindings[cmd.id] ?? cmd.keybinding;
                   return (
-                    <div key={action} className="rounded-lg border border-slate-200 p-3">
-                      <div className="mb-2 text-sm font-medium text-slate-900">{shortcutLabels[action]}</div>
-                      <div className="mb-3 text-xs text-slate-500">{shortcutDescriptions[action]}</div>
+                    <div key={cmd.id} className="rounded-lg border border-slate-200 p-3">
+                      <div className="mb-2 text-sm font-medium text-slate-900">{cmd.title}</div>
+                      {cmd.description && (
+                        <div className="mb-3 text-xs text-slate-500">{cmd.description}</div>
+                      )}
                       <div className="flex items-center gap-3">
                         <input
                           className="w-44 rounded-md border border-slate-200 px-3 py-2 text-sm outline-none ring-offset-2 transition focus:border-slate-300 focus:ring-2 focus:ring-slate-300"
-                          value={bindingToDisplay(binding)}
+                          value={bindingToDisplay(effectiveBinding)}
                           placeholder="Press a key"
                           onKeyDown={(event) => {
                             event.preventDefault();
+                            event.stopPropagation();
+                            if (event.key === "Escape") {
+                              event.currentTarget.blur();
+                              return;
+                            }
                             if (event.key === "Backspace" || event.key === "Delete") {
-                              updateBinding(action, { key: "", shift: false });
+                              updateBinding(cmd.id, { key: "", modifiers: {} });
                               return;
                             }
                             if (event.key.length !== 1) return;
-                            updateBinding(action, {
-                              key: event.key,
-                              shift: event.shiftKey,
+                            updateBinding(cmd.id, {
+                              key: event.key.toLowerCase(),
+                              modifiers: {
+                                shift: event.shiftKey,
+                                ctrl: event.ctrlKey,
+                                meta: event.metaKey,
+                              },
                             });
                           }}
-                          onChange={() => {
-                          }}
+                          onChange={() => {}}
                         />
                         <span className="text-xs text-slate-500">Press key combo to update</span>
                       </div>
@@ -139,31 +126,17 @@ export default function SettingsPopup({ open, onOpenChange }: SettingsPopupProps
             <button
               type="button"
               className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-              onClick={() => setDraft(defaultShortcutConfig)}
+              onClick={resetDefaults}
             >
-              Defaults
+              Reset defaults
             </button>
           )}
           <button
             type="button"
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-            onClick={() => {
-              setDraft(shortcuts);
-              onOpenChange(false);
-            }}
+            className="rounded-md border border-slate-900 bg-slate-900 px-3 py-1.5 text-sm text-white"
+            onClick={() => onOpenChange(false)}
           >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-slate-900 bg-slate-900 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!hasChanges}
-            onClick={() => {
-              setShortcuts(draft);
-              onOpenChange(false);
-            }}
-          >
-            Save changes
+            Done
           </button>
         </DialogFooter>
       </DialogContent>

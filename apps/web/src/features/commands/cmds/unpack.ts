@@ -1,6 +1,7 @@
 import { PackageOpen } from 'lucide-react';
 import type { Command } from '../types';
 import { useGraphStore } from '@/features/graph/store/graphStore';
+import { useSelectionStore } from '@/features/selection/store/selectionStore';
 
 export const unpackCommand: Command = {
   id: 'unpack',
@@ -23,6 +24,9 @@ export const unpackCommand: Command = {
 
   run: (ctx) => {
     if (!ctx.selectedEntityId) return;
-    useGraphStore.getState().explodeEntity(ctx.selectedEntityId);
+    const { nodes, explodeEntity } = useGraphStore.getState();
+    const { selectEntity } = useSelectionStore.getState();
+    explodeEntity(ctx.selectedEntityId);
+    selectEntity(nodes[ctx.selectedEntityId].children[0]);
   },
 };

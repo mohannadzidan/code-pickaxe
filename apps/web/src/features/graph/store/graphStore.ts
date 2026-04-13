@@ -35,23 +35,23 @@ const setEntityVisibility = (
   nodes: Record<string, DomainNode>,
   entityId: string,
   hidden: boolean,
-  directChildrenVisibility?: boolean,
-  indirectChildrenVisibility?: boolean
+  hideDirectChildren?: boolean,
+  hideIndirectChildren?: boolean
 ) => {
   if (!nodes[entityId]) return nodes;
 
   const mutated: Record<string, DomainNode> = {};
   const directChildren = nodes[entityId].children;
   const position = nodes[entityId].position;
-  if (indirectChildrenVisibility !== undefined) {
+  if (hideIndirectChildren !== undefined) {
     for (const childId of directChildren) {
-      if (directChildrenVisibility !== undefined && nodes[childId].hidden !== directChildrenVisibility) {
-        nodes[childId] = { ...nodes[childId], hidden: directChildrenVisibility, position };
+      if (hideDirectChildren !== undefined && nodes[childId].hidden !== hideDirectChildren) {
+        nodes[childId] = { ...nodes[childId], hidden: hideDirectChildren, position };
       }
-      if (indirectChildrenVisibility !== undefined) {
+      if (hideIndirectChildren !== undefined) {
         recursivelyMutateChildren(nodes, childId, (node) => {
-          if (nodes[node.id].hidden !== indirectChildrenVisibility) {
-            mutated[node.id] = { ...node, hidden: indirectChildrenVisibility, position };
+          if (nodes[node.id].hidden !== hideIndirectChildren) {
+            mutated[node.id] = { ...node, hidden: hideIndirectChildren, position };
           }
         });
       }
@@ -73,6 +73,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
 
   loadGraph: (graph) => {
     const draft = services.graphProjectionService.buildGraphState(graph);
+
     set({
       graph,
       nodes: draft.nodes,
@@ -115,11 +116,11 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     Object.values(state.nodes).forEach((node) => {
       if (visibleIds.has(node.id) && node.hidden) {
         mutated[node.id] = { ...node, hidden: false };
-      } else if (!node.hidden) {
+      } else if (!visibleIds.has(node.id) && !node.hidden) {
         mutated[node.id] = { ...node, hidden: true };
       }
     });
-
+console.log({mutated});
     set({ nodes: { ...state.nodes, ...mutated } });
   },
 

@@ -29,6 +29,9 @@ export function useCommands(activeSurface: 'graph' | 'explorer' | 'code' | 'glob
         return;
       }
 
+      // Skip if a dialog/modal is open (role="dialog" is present in the DOM)
+      if (document.querySelector('[role="dialog"]')) return;
+
       const keybinding = keybindingFromEvent(event);
       const matchingCommands = query(ctx, keybinding);
 
