@@ -22,10 +22,11 @@ export const packCommand: Command = {
 
   run: (ctx) => {
     if (!ctx.selectedEntityId) return;
-    const { nodes, collapseEntity } = useGraphStore.getState();
+    const { nodes, collapseEntity, setFocusedNodes } = useGraphStore.getState();
     const { selectEntity } = useSelectionStore.getState();
     console.log('Packing', ctx.selectedEntityId);
     collapseEntity(nodes[ctx.selectedEntityId].parentId!);
     selectEntity(nodes[ctx.selectedEntityId].parentId!);
+    setFocusedNodes([nodes[ctx.selectedEntityId].parentId!]);
   },
 };

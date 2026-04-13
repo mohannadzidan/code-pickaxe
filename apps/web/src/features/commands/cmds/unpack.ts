@@ -24,9 +24,10 @@ export const unpackCommand: Command = {
 
   run: (ctx) => {
     if (!ctx.selectedEntityId) return;
-    const { nodes, explodeEntity } = useGraphStore.getState();
+    const { nodes, explodeEntity, setFocusedNodes } = useGraphStore.getState();
     const { selectEntity } = useSelectionStore.getState();
     explodeEntity(ctx.selectedEntityId);
     selectEntity(nodes[ctx.selectedEntityId].children[0]);
+    setFocusedNodes([ctx.selectedEntityId]);
   },
 };

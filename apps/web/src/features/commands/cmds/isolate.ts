@@ -10,18 +10,15 @@ export const isolateCommand: Command = {
   keybinding: { key: 's', modifiers: { shift: false } },
 
   predicate: (ctx) => {
-    if (ctx.activeSurface !== 'graph' && ctx.activeSurface !== 'explorer') return false;
-    if (!ctx.selectedEntityId) return false;
-    const { nodes } = useGraphStore.getState();
-    const visibleCount = Object.values(nodes).filter((n) => !n.hidden).length;
-    return visibleCount > 1;
+    const {  nodes } = useGraphStore.getState();
+    return !!ctx.selectedEntityId && !nodes[ctx.selectedEntityId].hidden;
   },
 
   run: (ctx) => {
     if (!ctx.selectedEntityId) return;
 
     const graphStore = useGraphStore.getState();
-    const { graph, edges, nodes } = graphStore;
+    const { graph, edges, nodes, setFocusedNodes } = graphStore;
     if (!graph) return;
 
     // Resolve a node to its nearest visible ancestor.
@@ -32,9 +29,27 @@ export const isolateCommand: Command = {
       const node = nodes[nodeId];
       if (!node) return null;
       if (!node.hidden) return nodeId;
-      return node.parentId ? nearestVisible(node.parentId) : null;
+      // search both the children and the parent, since we could have hidden nodes in either direction (e.g. a packed module or a hidden class with an exploded method) and pick the first visible node we find in either direction. This isn't guaranteed to be the "closest" visible node in terms of graph distance, but it's a simple heuristic that seems to work well in practice.
+      const q: string[] = [];
+      if (!node.parentId) return null;
+      q.push(node.parentId);
+      while (q.length > 0) {
+        const currentId = q.shift()!;
+        const currentNode = nodes[currentId];
+        if (!currentNode) continue;
+        if (!currentNode.hidden) return currentId;
+        if (currentNode.parentId) q.push(currentNode.parentId);
+      }
+      return null;
     };
-
+    
+    const nearestContainer = (nodeId: string): string | null => {
+      const node = nodes[nodeId];
+      if (!node) return null;
+      if (node.kind === 'module' || node.kind === 'folder') return nodeId;
+      if (!node.parentId) return null;
+      return nearestContainer(node.parentId);
+    };
     console.log('Isolating', ctx.selectedEntityId, nodes[ctx.selectedEntityId]);
 
     // Collect all IDs in a node's subtree so we can match edges that reference
@@ -48,8 +63,10 @@ export const isolateCommand: Command = {
       node.children.forEach((childId) => collectAllRelatedNodes(childId, collected));
       return collected;
     };
-    const selectedSubtree = new Set(collectAllRelatedNodes(ctx.selectedEntityId).map(n => nearestVisible(n) ?? n));
+    const selectedSubtree = new Set(collectAllRelatedNodes(ctx.selectedEntityId).map((n) => nearestVisible(n) ?? nearestContainer(n) ?? n));
     selectedSubtree.add(ctx.selectedEntityId);
     graphStore.applyVisibilityMask(selectedSubtree);
+    console.log(nearestVisible(ctx.selectedEntityId), ctx.selectedEntityId, selectedSubtree);
+    setFocusedNodes([...selectedSubtree]);
   },
 };
