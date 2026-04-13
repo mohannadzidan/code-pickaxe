@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  applyNodeChanges,
   Background,
   Controls,
   MarkerType,
@@ -7,6 +8,7 @@ import {
   Panel,
   ReactFlow,
   ReactFlowProvider,
+  useNodesState,
   useReactFlow,
   type Edge,
   type EdgeTypes,
@@ -32,7 +34,6 @@ import { navigateToEdgeSource } from '@/orchestrators/navigateToEdgeSource';
 import SettingsPopup from './SettingsPopup';
 import { Crosshair } from 'lucide-react';
 import { useCommands } from '@/features/commands/useCommands';
-import { NodePositions } from '@/shared/types/domain';
 
 const nodeTypes: NodeTypes = { file: FileNode };
 const edgeTypes: EdgeTypes = { floating: FloatingEdge };
@@ -57,24 +58,28 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   const selectedEntityId = useSelectionStore(selectSelectedEntityId);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
-  const setNodePositions = useGraphStore((s) => s.setNodePositions);
   const focusedNodes = useGraphStore(selectFocusedNodes);
   const availableCommands = useCommands('graph');
   const simulationRef = useRef(services.simulationService);
 
-  const nearestVisibleParent = (nodeId: string): string | null => {
+  // Positions live only in a ref — never in React state — so simulation ticks
+  // don't trigger re-renders. ReactFlow's own useNodesState owns the rendered
+  // positions; we push updates into it selectively.
+  const positionsRef = useRef<Record<string, { x: number; y: number }>>({});
+
+  const nearestVisibleParent = useCallback((nodeId: string): string | null => {
     const node = graphNodes[nodeId];
     if (!node) return null;
     if (!node.hidden) return node.id;
     if (!node.parentId) return null;
     return nearestVisibleParent(node.parentId);
-  };
+  }, [graphNodes]);
 
-  const nodes: Node<FileNodeData>[] = Object.values(graphNodes).map((node) => ({
+  // Build a ReactFlow node from a domain node, reading position from the ref.
+  const buildNode = useCallback((node: (typeof graphNodes)[string]): Node<FileNodeData> => ({
     id: node.id,
     type: 'file',
-    position: node.position,
-
+    position: positionsRef.current[node.id] ?? { x: 0, y: 0 },
     data: {
       ...node,
       modulePath: node.showParentLabel ? node.parentLabel : undefined,
@@ -85,52 +90,96 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
       },
     },
     style: { width: 'auto', height: node.showParentLabel ? 48 : 36 },
-  }));
+  }), [selectedEntityId, onRevealInExplorer]);
 
-  const edges: Edge[] = Object.values(graphEdges).map((edge) => {
-    // nearest visible parent
-    return {
-      id: edge.id,
-      source: nearestVisibleParent(edge.source) ?? edge.source,
-      target: nearestVisibleParent(edge.target) ?? edge.target,
-      type: 'floating',
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
-      style: { stroke: '#94a3b8', strokeWidth: 1.5 },
-      label: edge.label,
-      data: {
-        firstUsageLoc: edge.code,
-        onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
-      },
-    };
-  });
-  // .filter((a) => a.source && a.target && a.source !== a.target) as Edge[];
-  // console.log(edges)
+  // ReactFlow owns the rendered node list. We update it on topology/selection
+  // changes and on simulation ticks — but those are two separate code paths so
+  // ReactFlow never loses drag/hover state during a tick.
+  const [rfNodes, setRfNodes] = useNodesState<FileNodeData>([]);
+
+  const edges: Edge[] = useMemo(
+    () =>
+      Object.values(graphEdges).map((edge) => ({
+        id: edge.id,
+        source: nearestVisibleParent(edge.source) ?? edge.source,
+        target: nearestVisibleParent(edge.target) ?? edge.target,
+        type: 'floating',
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
+        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+        label: edge.label,
+        data: {
+          firstUsageLoc: edge.code,
+          onNavigateTo: (location: CodeDefinition) => navigateToEdgeSource(location),
+        },
+      })),
+    [graphEdges, nearestVisibleParent]
+  );
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
+  // Rebuild ReactFlow nodes when domain topology or selection changes.
+  // Seed positions for newly visible nodes that have no position yet;
+  // previously visible nodes reuse their last known position from the ref.
+  useEffect(() => {
+    const visibleDomainNodes = Object.values(graphNodes).filter((n) => !n.hidden);
+
+    // Seed any node that has no position yet
+    for (const node of visibleDomainNodes) {
+      if (positionsRef.current[node.id]) continue;
+      const parentPos = node.parentId ? positionsRef.current[node.parentId] : undefined;
+      if (parentPos) {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = 100;
+        positionsRef.current[node.id] = {
+          x: parentPos.x + Math.cos(angle) * radius,
+          y: parentPos.y + Math.sin(angle) * radius,
+        };
+      } else {
+        positionsRef.current[node.id] = { x: 0, y: 0 };
+      }
+    }
+
+    setRfNodes(visibleDomainNodes.map(buildNode));
+  }, [graphNodes, buildNode, setRfNodes]);
+
+  // Wire simulation: ticks push position updates into rfNodes without
+  // rebuilding data fields, so ReactFlow keeps internal drag/hover state.
   useEffect(() => {
     simulationRef.current.init((nextPositions) => {
-      setNodePositions(nextPositions);
+      // Update ref first so drag callbacks always read current positions
+      Object.assign(positionsRef.current, nextPositions);
+      // Patch only the position field on each node — leaves data/style untouched
+      setRfNodes((nds) =>
+        nds.map((n) => {
+          const p = nextPositions[n.id];
+          return p ? { ...n, position: p } : n;
+        })
+      );
     });
 
     return () => {
       simulationRef.current.stop();
     };
-  }, [setNodePositions]);
+  }, [setRfNodes]);
 
+  // Sync topology to the simulation. positionsRef is read via ref so this effect
+  // only fires on real topology changes, never on position ticks.
   useEffect(() => {
-    simulationRef.current.syncGraph(
-      nodes.map((node) => ({
+    const visibleSimNodes = Object.values(graphNodes)
+      .filter((node) => !node.hidden)
+      .map((node) => ({
         id: node.id,
-        x: node.position.x,
-        y: node.position.y,
-      })),
-      edges.map((edge) => ({
-        source: edge.source,
-        target: edge.target,
-      }))
+        x: positionsRef.current[node.id]?.x ?? 0,
+        y: positionsRef.current[node.id]?.y ?? 0,
+      }));
+    const visibleNodeIds = new Set(visibleSimNodes.map((n) => n.id));
+    simulationRef.current.syncGraph(
+      visibleSimNodes,
+      edges
+        .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+        .map((edge) => ({ source: edge.source, target: edge.target }))
     );
-  }, [nodes, edges]);
+  }, [graphNodes, edges]);
 
   useEffect(() => {
     if (!selectedEntityId) return;
@@ -162,10 +211,12 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   );
 
   const onNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    positionsRef.current[node.id] = node.position;
     simulationRef.current.dragNode(node.id, node.position);
   }, []);
 
   const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
+    positionsRef.current[node.id] = node.position;
     simulationRef.current.releaseNode(node.id, node.position);
     simulationRef.current.reheat(0.5);
   }, []);
@@ -213,7 +264,7 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   return (
     <div ref={flowRef} className="w-full h-full">
       <ReactFlow
-        nodes={nodes.filter((node) => !node.data.hidden)}
+        nodes={rfNodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -223,11 +274,14 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onNodesChange={(changes) => {
-          if (changes.some((c) => c.type === 'position')) {
-            setNodePositions(
-              Object.fromEntries(changes.filter((c) => c.type === 'position').map((a) => [a.id, a.position])) as NodePositions
-            );
-            console.log(Object.fromEntries(changes.filter((c) => c.type === 'position').map((a) => [a.id, a.position])));
+          // Let ReactFlow apply all changes (select, dimensions, drag position, etc.)
+          // so its internal state stays consistent — this is what keeps dragging smooth.
+          setRfNodes((nds) => applyNodeChanges(changes, nds) as Node<FileNodeData>[]);
+          // Mirror drag positions back into the ref so the simulation reads them.
+          for (const c of changes) {
+            if (c.type === 'position' && c.position) {
+              positionsRef.current[c.id] = c.position;
+            }
           }
         }}
         nodesConnectable={false}

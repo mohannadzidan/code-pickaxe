@@ -38,7 +38,6 @@ export class GraphProjectionService {
         parentLabel: parent?.label,
         outEdgeIds: [],
         inEdgeIds: [],
-        position: { x: 0, y: 0 },
       };
 
       return created;
@@ -70,7 +69,6 @@ export class GraphProjectionService {
         parentId,
         outEdgeIds: [],
         inEdgeIds: [],
-        position: { x: 0, y: 0 },
       };
     }
 
@@ -86,7 +84,6 @@ export class GraphProjectionService {
         children: [],
         outEdgeIds: [],
         inEdgeIds: [],
-        position: { x: 0, y: 0 },
       };
     }
 

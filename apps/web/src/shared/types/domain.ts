@@ -24,10 +24,6 @@ export type DomainNode = {
   parentId?: EntityId;
   outEdgeIds: EntityId[];
   inEdgeIds: EntityId[];
-  position: {
-    x: number;
-    y: number;
-  };
 };
 
 export type DomainEdge = {

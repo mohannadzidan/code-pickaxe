@@ -1,6 +1,6 @@
 import type { SerializedCodeGraph } from '@api/parsing/types';
 import { create } from 'zustand';
-import type { DomainNode, GraphState, NodePositions } from '@/shared/types/domain';
+import type { DomainNode, GraphState } from '@/shared/types/domain';
 import { services } from '@/app/bootstrap';
 
 type StoreState = GraphState & {
@@ -15,7 +15,6 @@ type GraphActions = {
   hideEntity: (entityId: string) => void;
   showEntity: (entityId: string) => void;
   applyVisibilityMask: (visibleIds: Set<string>) => void;
-  setNodePositions: (positions: NodePositions) => void;
   setFocusedNodes: (nodeIds: string[]) => void;
 };
 
@@ -43,16 +42,15 @@ const setEntityVisibility = (
 
   const mutated: Record<string, DomainNode> = {};
   const directChildren = nodes[entityId].children;
-  const position = nodes[entityId].position;
   if (hideIndirectChildren !== undefined) {
     for (const childId of directChildren) {
       if (hideDirectChildren !== undefined && nodes[childId].hidden !== hideDirectChildren) {
-        nodes[childId] = { ...nodes[childId], hidden: hideDirectChildren, position };
+        nodes[childId] = { ...nodes[childId], hidden: hideDirectChildren };
       }
       if (hideIndirectChildren !== undefined) {
         recursivelyMutateChildren(nodes, childId, (node) => {
           if (nodes[node.id].hidden !== hideIndirectChildren) {
-            mutated[node.id] = { ...node, hidden: hideIndirectChildren, position };
+            mutated[node.id] = { ...node, hidden: hideIndirectChildren };
           }
         });
       }
@@ -125,18 +123,6 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     set({ nodes: { ...state.nodes, ...mutated } });
   },
 
-  setNodePositions: (positions) => {
-    set((state) => {
-      const mutated: Record<string, DomainNode> = {};
-      for (const [id, position] of Object.entries(positions)) {
-        const node = state.nodes[id];
-        if (!node) continue;
-        mutated[id] = { ...node, position };
-      }
-
-      return { nodes: { ...state.nodes, ...mutated } };
-    });
-  },
   setFocusedNodes: (nodeIds) => {
     set({ focusedNodes: nodeIds });
   },
