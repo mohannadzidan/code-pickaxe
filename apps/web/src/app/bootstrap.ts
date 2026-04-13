@@ -3,6 +3,7 @@ import { LayoutService } from "@/features/graph/services/layoutService";
 import { SimulationService } from "@/features/graph/services/simulationService";
 import { MonacoService } from "@/features/codePane/services/monacoService";
 import { SourceResolverService } from "@/features/codePane/services/sourceResolverService";
+import { registerAllCommands } from "@/features/commands/commands";
 
 export const services = {
   graphProjectionService: new GraphProjectionService(),
@@ -11,3 +12,6 @@ export const services = {
   monacoService: new MonacoService(),
   sourceResolverService: new SourceResolverService(),
 };
+
+// Register all commands on app initialization
+registerAllCommands();
