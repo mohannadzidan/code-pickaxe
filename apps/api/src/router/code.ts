@@ -3,7 +3,7 @@ import { publicProcedure, router } from '@api/trpc';
 import { createDefaultEngineRegistry } from '@api/parsing/registry';
 import path from 'path';
 
-const defaultProjectPath = path.join(process.cwd(), '../../examples/projects/07-class-hierarchy');
+const defaultProjectPath = path.join(process.cwd(), '../web');
 const defaultLanguageId = 'typescript';
 
 const registry = createDefaultEngineRegistry();

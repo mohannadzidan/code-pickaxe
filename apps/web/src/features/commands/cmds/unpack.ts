@@ -28,6 +28,6 @@ export const unpackCommand: Command = {
     const { selectEntity } = useSelectionStore.getState();
     explodeEntity(ctx.selectedEntityId);
     selectEntity(nodes[ctx.selectedEntityId].children[0]);
-    setFocusedNodes([ctx.selectedEntityId]);
+    setFocusedNodes(nodes[ctx.selectedEntityId].children);
   },
 };

@@ -6,11 +6,13 @@ import { isolateCommand } from './cmds/isolate';
 import { foldAllCommand } from './cmds/foldAll';
 import { unfoldAllCommand } from './cmds/unfoldAll';
 import { toggleSettingsCommand } from './cmds/toggleSettings';
+import { focusCommand } from './cmds/focus';
 
 export function registerAllCommands() {
   const registry = useCommandRegistryStore.getState();
 
   registry
+    .register(focusCommand)
     .register(hideCommand)
     // .register(showAllCommand)
     // .register(showAllHiddenCommand)
