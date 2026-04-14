@@ -82,7 +82,6 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
     position: positionsRef.current[node.id] ?? { x: 0, y: 0 },
     data: {
       ...node,
-      modulePath: node.showParentLabel ? node.parentLabel : undefined,
       isSelected: node.id === selectedEntityId,
       onSelectNode: (entityId: string) => {
         selectEntity(entityId);
@@ -95,7 +94,7 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   // ReactFlow owns the rendered node list. We update it on topology/selection
   // changes and on simulation ticks — but those are two separate code paths so
   // ReactFlow never loses drag/hover state during a tick.
-  const [rfNodes, setRfNodes] = useNodesState<FileNodeData>([]);
+  const [rfNodes, setRfNodes] = useNodesState<Node<FileNodeData>>([]);
 
   const edges: Edge[] = useMemo(
     () =>
@@ -182,14 +181,13 @@ function LayoutFlow({ onRevealInExplorer, onOpenSettings }: LayoutFlowProps) {
   }, [graphNodes, edges]);
 
   useEffect(() => {
-    if (!selectedEntityId) return;
     reactFlow.fitView({
       nodes: focusedNodes.map((id) => ({ id })),
       padding: 0.35,
       duration: 250,
       maxZoom: 1.2,
     });
-  }, [selectedEntityId, reactFlow, focusedNodes]);
+  }, [reactFlow, focusedNodes]);
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {

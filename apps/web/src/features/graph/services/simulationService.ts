@@ -19,50 +19,10 @@ type SimInputNode = {
 const NODE_W = 120;
 const NODE_H = 36;
 
+// Half-diagonal of a node — used as the collision radius so d3's quadtree-based
+// forceCollide (O(n log n)) can replace the old O(n²) brute-force rect check.
 function nodeRadius(node: Pick<SimNode, "w" | "h">): number {
-  return Math.max(node.w, node.h) / 2;
-}
-
-function forceRectCollide(padding = 20) {
-  let sns: SimNode[] = [];
-
-  function force(alpha: number) {
-    for (let i = 0; i < sns.length; i++) {
-      for (let j = i + 1; j < sns.length; j++) {
-        const a = sns[i];
-        const b = sns[j];
-
-        const ax = (a.x ?? 0) + a.w / 2;
-        const ay = (a.y ?? 0) + a.h / 2;
-        const bx = (b.x ?? 0) + b.w / 2;
-        const by = (b.y ?? 0) + b.h / 2;
-
-        const dx = bx - ax;
-        const dy = by - ay;
-        const dist = Math.hypot(dx, dy) || 0.0001;
-        const minDist = nodeRadius(a) + nodeRadius(b) + padding;
-        const overlap = minDist - dist;
-        if (overlap <= 0) continue;
-
-        const push = overlap * alpha;
-        const ux = dx / dist;
-        const uy = dy / dist;
-        const fx = ux * push;
-        const fy = uy * push;
-
-        a.vx = (a.vx ?? 0) - fx;
-        a.vy = (a.vy ?? 0) - fy;
-        b.vx = (b.vx ?? 0) + fx;
-        b.vy = (b.vy ?? 0) + fy;
-      }
-    }
-  }
-
-  force.initialize = (nodes: SimNode[]) => {
-    sns = nodes;
-  };
-
-  return force;
+  return Math.hypot(node.w, node.h) / 2;
 }
 
 export class SimulationService {
@@ -70,6 +30,10 @@ export class SimulationService {
   private nodesById = new Map<string, SimNode>();
   private rafId: number | null = null;
   private onTick: ((positions: Record<string, { x: number; y: number }>) => void) | null = null;
+
+  // Pre-allocated output map — reused every tick to avoid per-frame GC pressure.
+  // Position entries are also reused; only their x/y values are mutated.
+  private outputPositions: Record<string, { x: number; y: number }> = {};
 
   init(onTick: (positions: Record<string, { x: number; y: number }>) => void) {
     this.onTick = onTick;
@@ -91,35 +55,60 @@ export class SimulationService {
       };
     });
 
-    this.nodesById = new Map(nextNodes.map((node) => [node.id, node]));
+    this.nodesById = new Map(nextNodes.map((n) => [n.id, n]));
 
-    this.simulation?.stop();
-    this.simulation = d3Force
-      .forceSimulation<SimNode>(nextNodes)
-      .force(
-        "link",
-        d3Force
-          .forceLink<SimNode, d3Force.SimulationLinkDatum<SimNode>>(links)
-          .id((d) => d.id)
-          .distance((link) => {
-            const source = link.source as unknown as SimNode;
-            const target = link.target as unknown as SimNode;
-            return nodeRadius(source) + nodeRadius(target) + 110;
+    // Remove stale entries from the output map so we don't emit positions for
+    // nodes that are no longer in the simulation.
+    for (const id of Object.keys(this.outputPositions)) {
+      if (!this.nodesById.has(id)) delete this.outputPositions[id];
+    }
+
+    if (this.simulation) {
+      // Incrementally update the existing simulation — preserves velocities,
+      // alpha state, and avoids rebuilding all force data structures from scratch.
+      this.simulation.nodes(nextNodes);
+      // forceLink links must be updated separately after nodes() reinitialises
+      // the node index used for source/target lookups.
+      (
+        this.simulation.force("link") as d3Force.ForceLink<SimNode, d3Force.SimulationLinkDatum<SimNode>>
+      ).links(links);
+    } else {
+      // First call — create the simulation once.
+      this.simulation = d3Force
+        .forceSimulation<SimNode>(nextNodes)
+        .force(
+          "link",
+          d3Force
+            .forceLink<SimNode, d3Force.SimulationLinkDatum<SimNode>>(links)
+            .id((d) => d.id)
+            .distance((link) => {
+              const source = link.source as unknown as SimNode;
+              const target = link.target as unknown as SimNode;
+              return nodeRadius(source) + nodeRadius(target) + 110;
+            })
+            .strength(0.1)
+        )
+        .force(
+          "charge",
+          d3Force.forceManyBody<SimNode>().strength((node) => {
+            const scale = Math.max(1, Math.max(node.w, node.h) / NODE_W);
+            return -1100 * scale;
           })
-          .strength(0.1)
-      )
-      .force(
-        "charge",
-        d3Force.forceManyBody<SimNode>().strength((node) => {
-          const scale = Math.max(1, Math.max(node.w, node.h) / NODE_W);
-          return -1100 * scale;
-        })
-      )
-      .force("collide", forceRectCollide(18))
-      .force("x", d3Force.forceX<SimNode>(0).strength(0.04))
-      .force("y", d3Force.forceY<SimNode>(0).strength(0.04))
-      .alphaDecay(0.02)
-      .stop();
+        )
+        // O(n log n) quadtree collision — replaces the old O(n²) brute-force loop.
+        // Padding of 9 per side gives the same total gap (18px) as before since
+        // forceCollide enforces radius(a) + radius(b) minimum distance.
+        .force(
+          "collide",
+          d3Force
+            .forceCollide<SimNode>((node) => nodeRadius(node) + 9)
+            .strength(0.8)
+        )
+        .force("x", d3Force.forceX<SimNode>(0).strength(0.04))
+        .force("y", d3Force.forceY<SimNode>(0).strength(0.04))
+        .alphaDecay(0.02)
+        .stop();
+    }
 
     this.reheat(0.55);
   }
@@ -160,11 +149,17 @@ export class SimulationService {
 
   private emitPositions() {
     if (!this.onTick) return;
-    const positions: Record<string, { x: number; y: number }> = {};
+    // Mutate pre-allocated entries rather than allocating new objects each tick.
     for (const [id, node] of this.nodesById.entries()) {
-      positions[id] = { x: node.x ?? 0, y: node.y ?? 0 };
+      let entry = this.outputPositions[id];
+      if (!entry) {
+        this.outputPositions[id] = { x: node.x ?? 0, y: node.y ?? 0 };
+      } else {
+        entry.x = node.x ?? 0;
+        entry.y = node.y ?? 0;
+      }
     }
-    this.onTick(positions);
+    this.onTick(this.outputPositions);
   }
 
   private startTicking() {
